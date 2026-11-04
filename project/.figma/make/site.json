@@ -1,0 +1,10 @@
+{
+  "description": "Enables Ghanaian citizens to report illegal mining emergencies and helps regulators monitor incidents, satellite detections, and response progress on a live map.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

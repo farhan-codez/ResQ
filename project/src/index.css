@@ -1,0 +1,367 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+@import 'leaflet/dist/leaflet.css';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ResQ design tokens. 60% neutral surface, 30% forest green, 10% alert. */
+:root {
+  --bg: #f6f6f2;
+  --surface: #ffffff;
+  --surface-2: #f0f1ec;
+  --surface-3: #e7e9e3;
+  --border: #e1e3dc;
+  --border-strong: #c9cdc4;
+  --fg: #141a17;
+  --fg-muted: #535c57;
+  --fg-subtle: #69726d;
+
+  --brand: #1f5138;
+  --brand-hover: #18412d;
+  --brand-fg: #ffffff;
+  --brand-soft: #e5eee8;
+  --brand-soft-fg: #1f5138;
+  --nav: #163a28;
+  --nav-2: #1f4a34;
+  --nav-border: #2a573f;
+  --nav-fg: #ffffff;
+  --nav-fg-muted: #b9cdc1;
+
+  --alert: #c93f1a;
+  --alert-hover: #b0350f;
+  --alert-fg: #ffffff;
+  --alert-soft: #fbe6de;
+
+  --low: #d99a1e;
+  --low-soft: #fcf1d6;
+  --low-fg: #7f5200;
+  --medium: #e2701c;
+  --medium-soft: #fde6d4;
+  --medium-fg: #9a420a;
+  --high: #d42c1f;
+  --high-soft: #fbe0dd;
+  --high-fg: #ad2318;
+
+  --pending-soft: #eceeec;
+  --pending-fg: #4a524e;
+  --investigating-soft: #e2ecfb;
+  --investigating-fg: #1c56b4;
+  --resolved-soft: #e0f1e6;
+  --resolved-fg: #1b6e39;
+
+  --ring: #2f7d55;
+  --scrim: rgb(10 20 15 / 0.4);
+  --shadow-overlay: 0 12px 32px -8px rgb(16 28 22 / 0.18), 0 2px 6px rgb(16 28 22 / 0.06);
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0d100f;
+  --surface: #141817;
+  --surface-2: #1a1f1d;
+  --surface-3: #222826;
+  --border: #252b29;
+  --border-strong: #353d39;
+  --fg: #ebefec;
+  --fg-muted: #a5aea9;
+  --fg-subtle: #8d9691;
+
+  --brand: #2a6b4a;
+  --brand-hover: #317854;
+  --brand-fg: #ffffff;
+  --brand-soft: #16261d;
+  --brand-soft-fg: #8fcfaa;
+  --nav: #0f2219;
+  --nav-2: #163024;
+  --nav-border: #1f3d2e;
+  --nav-fg: #ffffff;
+  --nav-fg-muted: #9db5a7;
+
+  --alert: #cf4420;
+  --alert-hover: #dc5530;
+  --alert-fg: #ffffff;
+  --alert-soft: #2c1610;
+
+  --low: #e3a62c;
+  --low-soft: #2a2110;
+  --low-fg: #f0c463;
+  --medium: #ea7d2b;
+  --medium-soft: #2c1a0e;
+  --medium-fg: #f5a467;
+  --high: #e0412f;
+  --high-soft: #2f1412;
+  --high-fg: #f59d93;
+
+  --pending-soft: #232927;
+  --pending-fg: #b8c0bc;
+  --investigating-soft: #142036;
+  --investigating-fg: #8db7f6;
+  --resolved-soft: #12271a;
+  --resolved-fg: #7ccf9b;
+
+  --ring: #6fc597;
+  --scrim: rgb(0 0 0 / 0.55);
+  --shadow-overlay: 0 12px 32px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.3);
+  color-scheme: dark;
+}
+
+@theme inline {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  /* Type scale: 12, 14, 16, 20, 28, 40 */
+  --text-xs: 0.75rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.5;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.2;
+  --text-2xl: 1.75rem;
+  --text-2xl--line-height: 1.2;
+  --text-4xl: 2.5rem;
+  --text-4xl--line-height: 1.2;
+
+  --shadow-overlay: var(--shadow-overlay);
+
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-fg: var(--brand-fg);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-soft-fg: var(--brand-soft-fg);
+  --color-nav: var(--nav);
+  --color-nav-2: var(--nav-2);
+  --color-nav-border: var(--nav-border);
+  --color-nav-fg: var(--nav-fg);
+  --color-nav-fg-muted: var(--nav-fg-muted);
+  --color-alert: var(--alert);
+  --color-alert-hover: var(--alert-hover);
+  --color-alert-fg: var(--alert-fg);
+  --color-alert-soft: var(--alert-soft);
+  --color-low: var(--low);
+  --color-low-soft: var(--low-soft);
+  --color-low-fg: var(--low-fg);
+  --color-medium: var(--medium);
+  --color-medium-soft: var(--medium-soft);
+  --color-medium-fg: var(--medium-fg);
+  --color-high: var(--high);
+  --color-high-soft: var(--high-soft);
+  --color-high-fg: var(--high-fg);
+  --color-pending-soft: var(--pending-soft);
+  --color-pending-fg: var(--pending-fg);
+  --color-investigating-soft: var(--investigating-soft);
+  --color-investigating-fg: var(--investigating-fg);
+  --color-resolved-soft: var(--resolved-soft);
+  --color-resolved-fg: var(--resolved-fg);
+  --color-ring: var(--ring);
+  --color-scrim: var(--scrim);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    line-height: 1.2;
+    font-weight: 600;
+  }
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .focus-ring {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Live indicator pulse */
+@keyframes resq-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+.resq-pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: inherit;
+  animation: resq-pulse 1.8s ease-out infinite;
+}
+
+@keyframes resq-shimmer {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+.resq-skeleton {
+  animation: resq-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes resq-slide-in-right {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes resq-slide-in-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes resq-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes resq-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-slide-right {
+  animation: resq-slide-in-right 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.animate-slide-up {
+  animation: resq-slide-in-up 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.animate-panel {
+  animation: resq-slide-in-up 280ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@media (min-width: 48rem) {
+  .animate-panel {
+    animation: resq-slide-in-right 260ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+}
+.animate-fade {
+  animation: resq-fade-in 200ms ease-out;
+}
+.animate-toast {
+  animation: resq-toast-in 220ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-right,
+  .animate-slide-up,
+  .animate-panel,
+  .animate-fade,
+  .animate-toast,
+  .resq-skeleton,
+  .resq-pulse::after {
+    animation: none;
+  }
+}
+
+/* Leaflet theming */
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: var(--surface-2);
+}
+.leaflet-popup-content-wrapper {
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow-overlay);
+  padding: 0;
+}
+.leaflet-popup-content {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  width: 260px !important;
+}
+.leaflet-popup-tip {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+.leaflet-container a.leaflet-popup-close-button {
+  color: var(--fg-muted);
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
+  font-size: 20px;
+  line-height: 26px;
+  border-radius: 8px;
+}
+.leaflet-container a.leaflet-popup-close-button:hover {
+  background: var(--surface-2);
+  color: var(--fg);
+}
+.leaflet-control-attribution {
+  background: color-mix(in srgb, var(--surface) 85%, transparent) !important;
+  color: var(--fg-muted) !important;
+  font-size: 11px;
+}
+.leaflet-control-attribution a {
+  color: var(--fg-muted) !important;
+}
+.resq-marker {
+  background: none;
+  border: none;
+}
+.resq-marker:focus-visible {
+  outline: none;
+}
+.resq-marker:focus-visible > div {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.dark .leaflet-tile-pane {
+  filter: brightness(0.95);
+}
