@@ -61,7 +61,7 @@ export default function Sidebar({ isOpen, onClose }) {
 
       <div className="p-4 border-t border-slate-800 mt-auto">
         <div className="space-y-2">
-          <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-3">Account</div>
+          <p className="text-[10px] text-slate-500 uppercase tracking-wider font-bold mb-3">Account</p>
           <button
             onClick={() => {
               logout();
