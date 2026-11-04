@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { ToastProvider } from './components/ui/Toast'
 import { AppProvider, routeToHash, useApp } from './lib/store'
 import { Dashboard } from './screens/Dashboard'
@@ -41,13 +40,8 @@ function MobileFrame() {
 
 function Root() {
   const { embedded } = useApp()
-  const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop')
   if (embedded) return <Screen />
-  return (
-    <>
-      {device === 'mobile' ? <MobileFrame /> : <Screen />}
-    </>
-  )
+  return <Screen />
 }
 
 export default function App() {
