@@ -98,9 +98,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!isSupabaseConfigured) return
 
+    const client = supabase
+    if (!client) return
+
     let cancelled = false
     const load = async () => {
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('complaints')
         .select('*')
         .order('created_at', { ascending: false })
@@ -109,7 +112,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
     load()
 
-    const channel = supabase
+    const channel = client
       .channel('realtime:complaints')
       .on(
         'postgres_changes',
@@ -124,7 +127,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true
-      supabase.removeChannel(channel)
+      client.removeChannel(channel)
     }
   }, [isSupabaseConfigured])
 
@@ -150,7 +153,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const addReport = useCallback(
     async (r: Report) => {
       setReports((prev) => (prev.some((p) => p.id === r.id) ? prev : [r, ...prev]))
-      if (!isSupabaseConfigured) return
+      if (!isSupabaseConfigured || !supabase) return
       await supabase.from('complaints').insert([
         {
           id: r.id,

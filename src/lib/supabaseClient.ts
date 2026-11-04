@@ -1,11 +1,15 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Report } from './types';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '');
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+
+// Only create a client when both env vars exist — createClient throws on empty strings.
+export const supabase: SupabaseClient | null = isSupabaseConfigured
+  ? createClient(supabaseUrl as string, supabaseAnonKey as string)
+  : null;
 
 export interface ComplaintRow {
   id: string;
