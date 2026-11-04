@@ -1,0 +1,83 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-resq-deep text-slate-200 antialiased selection:bg-[#0ea5e9] selection:text-white;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+  #root {
+    @apply h-screen w-screen overflow-hidden;
+  }
+}
+
+@layer components {
+  .resq-panel {
+    @apply bg-slate-900/80 backdrop-blur-md border border-slate-800 rounded-2xl shadow-2xl;
+  }
+
+  .severity-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wider uppercase shadow-sm border;
+  }
+  .severity-low {
+    @apply bg-yellow-500/10 text-yellow-400 border border-yellow-500/30;
+  }
+  .severity-medium {
+    @apply bg-orange-500/10 text-orange-400 border border-orange-500/30;
+  }
+  .severity-high {
+    @apply bg-red-500/10 text-red-400 border border-red-500/30;
+  }
+
+  .leaflet-container {
+    @apply w-full h-full bg-slate-900;
+    z-index: 0;
+    touch-action: none;
+  }
+
+  .leaflet-popup-content-wrapper {
+    @apply bg-slate-800 text-slate-100 border border-slate-700 rounded-lg p-3 shadow-xl;
+    font-family: inherit;
+    font-size: 13px;
+  }
+
+  .leaflet-popup-tip {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+  }
+
+  .leaflet-popup-close-button {
+    @apply text-slate-400 hover:text-white;
+  }
+
+  .layer-btn {
+    @apply flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-lg transition-all duration-200 border text-slate-300;
+  }
+  .layer-btn-active {
+    @apply bg-slate-800 border-water text-water shadow-[0_0_15px_rgba(14,165,233,0.35)];
+  }
+  .layer-btn-inactive {
+    @apply border-slate-700 hover:bg-slate-800/50 hover:text-slate-100 hover:border-slate-500;
+  }
+
+  .report-card {
+    @apply bg-slate-800/40 border border-slate-700/40 rounded-xl p-3.5 hover:bg-slate-800/70 hover:border-slate-600 transition-all duration-200 cursor-pointer;
+  }
+
+  .alert-banner {
+    @apply fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 bg-red-900/95 backdrop-blur-md border border-red-500/40 rounded-xl shadow-[0_0_30px_rgba(220,38,38,0.4)] animate-pulse-ring;
+  }
+
+  @keyframes pulse-ring {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.03); opacity: 0.85; }
+  }
+  .animate-pulse-ring {
+    animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  .toast {
+    @apply fixed bottom-4 right-4 z-50 bg-slate-800 border border-slate-600 text-slate-100 px-4 py-3 rounded-lg shadow-2xl transition-all duration-300 transform translate-y-0;
+  }
+}
