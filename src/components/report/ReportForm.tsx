@@ -1,12 +1,12 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CircleCheck, ImagePlus, MapPin, RotateCcw, Send, CloudOff, X, Map as MapIcon, PenLine } from 'lucide-react'
-import { Button } from '../../components/ui/Button'
-import { FieldError, Hint, Input, Label, Textarea } from '../../components/ui/Field'
-import { SeverityChip, StatusChip } from '../../components/ui/Chips'
-import { useToast } from '../../components/ui/Toast'
-import { SEVERITY, cx, formatCoords } from '../../lib/meta'
-import { useApp } from '../../lib/store'
-import type { Report, Severity } from '../../lib/types'
+import { Button } from '@/components/ui/Button'
+import { FieldError, Hint, Input, Label, Textarea } from '@/components/ui/Field'
+import { SeverityChip, StatusChip } from '@/components/ui/Chips'
+import { useToast } from '@/components/ui/Toast'
+import { SEVERITY, cx, formatCoords } from '@/lib/meta'
+import { useApp } from '@/lib/store'
+import type { Report, Severity } from '@/lib/types'
 import { SeverityPicker } from './SeverityPicker'
 
 type Field = 'title' | 'description' | 'severity'
@@ -347,4 +347,3 @@ export function ReportForm({
     </form>
   )
 }
-

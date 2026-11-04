@@ -1,11 +1,11 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ArrowLeft, ArrowRight, Camera, CameraOff, Check, CircleCheck, LoaderCircle, RotateCcw, Upload, Sun, Square, Scan } from 'lucide-react'
-import { AuthCard, AuthLayout } from '../components/layout/AuthLayout'
-import { Button } from '../components/ui/Button'
-import { FieldError, Input, Label } from '../components/ui/Field'
-import { Logo } from '../components/ui/Logo'
-import { cx } from '../lib/meta'
-import { useApp } from '../lib/store'
+import { AuthCard, AuthLayout } from '@/components/layout/AuthLayout'
+import { Button } from '@/components/ui/Button'
+import { FieldError, Input, Label } from '@/components/ui/Field'
+import { Logo } from '@/components/ui/Logo'
+import { cx } from '@/lib/meta'
+import { useApp } from '@/lib/store'
 
 const STEPS = ['Details', 'Ghana Card', 'Done'] as const
 
@@ -349,4 +349,3 @@ export function Signup() {
     </AuthLayout>
   )
 }
-

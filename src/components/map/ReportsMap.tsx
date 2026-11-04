@@ -1,15 +1,15 @@
-﻿import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import L from 'leaflet'
 import { MapContainer, Marker, Polygon, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet'
 import { Check, Crosshair, Layers, LocateFixed, Minus, Plus, Satellite, X } from 'lucide-react'
-import { IconButton, Button } from '../../components/ui/Button'
-import { SeverityChip, StatusChip } from '../../components/ui/Chips'
-import { useToast } from '../../components/ui/Toast'
-import { DETECTIONS, GHANA_CENTER } from '../../lib/data'
-import { SEVERITY, SEVERITY_ORDER, cx, timeAgo } from '../../lib/meta'
-import { useDismiss } from '../../lib/useDismiss'
-import { useApp } from '../../lib/store'
-import type { Report } from '../../lib/types'
+import { IconButton, Button } from '@/components/ui/Button'
+import { SeverityChip, StatusChip } from '@/components/ui/Chips'
+import { useToast } from '@/components/ui/Toast'
+import { DETECTIONS, GHANA_CENTER } from '@/lib/data'
+import { SEVERITY, SEVERITY_ORDER, cx, timeAgo } from '@/lib/meta'
+import { useDismiss } from '@/lib/useDismiss'
+import { useApp } from '@/lib/store'
+import type { Report } from '@/lib/types'
 import { draftIcon, markerHtml, meIcon, severityIcon } from './markers'
 
 export interface MapHandle {
@@ -326,4 +326,3 @@ export function MapThumb({ report }: { report: Report }) {
     </div>
   )
 }
-

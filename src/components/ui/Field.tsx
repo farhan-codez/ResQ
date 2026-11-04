@@ -1,6 +1,6 @@
-﻿import { ChevronDown, CircleAlert } from 'lucide-react'
+import { ChevronDown, CircleAlert } from 'lucide-react'
 import { forwardRef, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react'
-import { cx } from '../../lib/meta'
+import { cx } from '@/lib/meta'
 
 export const controlBase =
   'w-full rounded-lg border bg-surface text-base text-fg placeholder:text-fg-subtle transition-[border-color,box-shadow] outline-none md:text-sm ' +
@@ -75,4 +75,3 @@ export function Select({ className, invalid, children, ...rest }: SelectHTMLAttr
     </div>
   )
 }
-

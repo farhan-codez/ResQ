@@ -1,4 +1,4 @@
-﻿import { cx } from '../../lib/meta'
+import { cx } from '@/lib/meta'
 
 export function LogoMark({ className, onDark }: { className?: string; onDark?: boolean }) {
   return (
@@ -24,4 +24,3 @@ export function Logo({ onDark, className, size = 'md' }: { onDark?: boolean; cla
     </span>
   )
 }
-

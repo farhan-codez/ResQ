@@ -1,8 +1,8 @@
-﻿import L from 'leaflet'
+import L from 'leaflet'
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
-import { SEVERITY } from '../../lib/meta'
-import type { Severity } from '../../lib/types'
+import { SEVERITY } from '@/lib/meta'
+import type { Severity } from '@/lib/types'
 
 const cache = new Map<string, L.DivIcon>()
 
@@ -38,4 +38,3 @@ export const meIcon = L.divIcon({
   iconSize: [18, 18],
   iconAnchor: [9, 9],
 })
-

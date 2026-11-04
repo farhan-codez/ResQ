@@ -1,12 +1,12 @@
-﻿import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Bell, LayoutGrid, List, LogOut, Map as MapIcon, Moon, Search, Siren, Sun, User, X } from 'lucide-react'
-import { Button, IconButton } from '../../components/ui/Button'
-import { Logo } from '../../components/ui/Logo'
-import { SeverityChip } from '../../components/ui/Chips'
-import { SEVERITY, cx, timeAgo } from '../../lib/meta'
-import { useApp } from '../../lib/store'
-import { useDismiss } from '../../lib/useDismiss'
-import type { Report } from '../../lib/types'
+import { Button, IconButton } from '@/components/ui/Button'
+import { Logo } from '@/components/ui/Logo'
+import { SeverityChip } from '@/components/ui/Chips'
+import { SEVERITY, cx, timeAgo } from '@/lib/meta'
+import { useApp } from '@/lib/store'
+import { useDismiss } from '@/lib/useDismiss'
+import type { Report } from '@/lib/types'
 
 type Active = 'map' | 'reports'
 
@@ -84,7 +84,7 @@ function SearchBox({ onDone, autoFocus }: { onDone?: () => void; autoFocus?: boo
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-fg">{r.title}</p>
                     <p className="text-xs text-fg-muted">
-                      {r.place}, {r.region} Â· {r.id}
+                      {r.place}, {r.region} · {r.id}
                     </p>
                   </div>
                   <SeverityChip severity={r.severity} />
@@ -378,4 +378,3 @@ export function AppShell({ active, children, onReport }: { active: Active; child
     </div>
   )
 }
-

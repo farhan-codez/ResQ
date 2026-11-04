@@ -1,5 +1,5 @@
-﻿import { SEVERITY, STATUS, cx } from '../../lib/meta'
-import type { Severity, Status } from '../../lib/types'
+import { SEVERITY, STATUS, cx } from '@/lib/meta'
+import type { Severity, Status } from '@/lib/types'
 
 const sevTone: Record<Severity, string> = {
   low: 'bg-low-soft text-low-fg',
@@ -39,4 +39,3 @@ export function StatusChip({ status, className }: { status: Status; className?: 
     </span>
   )
 }
-

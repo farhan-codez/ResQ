@@ -1,6 +1,6 @@
-﻿import { LoaderCircle, type LucideIcon } from 'lucide-react'
+import { LoaderCircle, type LucideIcon } from 'lucide-react'
 import { forwardRef, type ButtonHTMLAttributes } from 'react'
-import { cx } from '../../lib/meta'
+import { cx } from '@/lib/meta'
 
 type Variant = 'primary' | 'alert' | 'secondary' | 'ghost' | 'link' | 'nav'
 type Size = 'sm' | 'md' | 'lg'
@@ -102,4 +102,3 @@ export function IconButton({
     </span>
   )
 }
-

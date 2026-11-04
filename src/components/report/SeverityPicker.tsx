@@ -1,6 +1,6 @@
-﻿import { useRef, type KeyboardEvent } from 'react'
-import { SEVERITY, SEVERITY_ORDER, cx } from '../../lib/meta'
-import type { Severity } from '../../lib/types'
+import { useRef, type KeyboardEvent } from 'react'
+import { SEVERITY, SEVERITY_ORDER, cx } from '@/lib/meta'
+import type { Severity } from '@/lib/types'
 
 const selectedTone: Record<Severity, string> = {
   low: 'border-low bg-low-soft text-low-fg',
@@ -75,4 +75,3 @@ export function SeverityPicker({
     </div>
   )
 }
-

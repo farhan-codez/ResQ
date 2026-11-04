@@ -1,14 +1,14 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Eye, FilterX, Inbox, MapPin, SearchX, Siren, ShieldAlert, Map as MapIcon } from 'lucide-react'
-import { AppShell } from '../components/layout/AppShell'
-import { IncidentDetail } from '../components/report/IncidentDetail'
-import { Button, IconButton } from '../components/ui/Button'
-import { SeverityChip, StatusChip } from '../components/ui/Chips'
-import { Select } from '../components/ui/Field'
-import { Skeleton } from '../components/ui/Skeleton'
-import { SEVERITY, SEVERITY_ORDER, STATUS, STATUS_ORDER, cx, formatDateTime, timeAgo } from '../lib/meta'
-import { useApp } from '../lib/store'
-import type { Report, Severity, Status } from '../lib/types'
+import { AppShell } from '@/components/layout/AppShell'
+import { IncidentDetail } from '@/components/report/IncidentDetail'
+import { Button, IconButton } from '@/components/ui/Button'
+import { SeverityChip, StatusChip } from '@/components/ui/Chips'
+import { Select } from '@/components/ui/Field'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { SEVERITY, SEVERITY_ORDER, STATUS, STATUS_ORDER, cx, formatDateTime, timeAgo } from '@/lib/meta'
+import { useApp } from '@/lib/store'
+import type { Report, Severity, Status } from '@/lib/types'
 
 type DateFilter = 'any' | '24h' | '7d' | '30d'
 const DATE_MS: Record<Exclude<DateFilter, 'any'>, number> = { '24h': 86_400_000, '7d': 7 * 86_400_000, '30d': 30 * 86_400_000 }
@@ -93,7 +93,7 @@ export function ReportsList() {
                 <h1 className="text-2xl text-fg">Reports</h1>
                 <p className="mt-1 flex items-center gap-2 text-sm text-fg-muted">
                   <span className="resq-pulse relative size-2 rounded-full bg-resolved-fg" aria-hidden />
-                  {reports.length} reports Â· updating in real time
+                  {reports.length} reports · updating in real time
                 </p>
               </div>
               <dl className="hidden gap-6 md:flex">
@@ -104,7 +104,7 @@ export function ReportsList() {
                 ].map((c) => (
                   <div key={c.k} className="text-right">
                     <dt className="text-xs text-fg-muted">{c.k}</dt>
-                    <dd className={cx('tabular text-xl font-semibold', c.tone)}>{loading ? 'â€“' : c.v}</dd>
+                    <dd className={cx('tabular text-xl font-semibold', c.tone)}>{loading ? '–' : c.v}</dd>
                   </div>
                 ))}
               </dl>
@@ -315,4 +315,3 @@ function TableSkeleton() {
     </div>
   )
 }
-

@@ -1,6 +1,6 @@
-﻿import { CircleAlert, CircleCheck, Info, X } from 'lucide-react'
+import { CircleAlert, CircleCheck, Info, X } from 'lucide-react'
 import { createContext, useCallback, useContext, useState, type ReactNode } from 'react'
-import { cx } from '../../lib/meta'
+import { cx } from '@/lib/meta'
 
 type Tone = 'success' | 'error' | 'info'
 interface ToastItem {
@@ -72,4 +72,3 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     </ToastCtx.Provider>
   )
 }
-

@@ -90,6 +90,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+  }, [theme])
+
   // Supabase: load existing complaints + subscribe to realtime inserts
   useEffect(() => {
     if (!isSupabaseConfigured) return
@@ -123,10 +127,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       supabase.removeChannel(channel)
     }
   }, [isSupabaseConfigured])
-
-  useEffect(() => {
-    document.documentElement.classList.toggle('dark', theme === 'dark')
-  }, [theme])
 
   const navigate = useCallback((r: Route) => {
     const h = routeToHash(r)

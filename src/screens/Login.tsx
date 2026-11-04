@@ -1,12 +1,12 @@
-﻿import { useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { CircleAlert, Eye, EyeOff } from 'lucide-react'
-import { AuthCard, AuthLayout } from '../components/layout/AuthLayout'
-import { Button } from '../components/ui/Button'
-import { FieldError, Input, Label } from '../components/ui/Field'
-import { GoogleIcon } from '../components/ui/GoogleIcon'
-import { Logo } from '../components/ui/Logo'
-import { useToast } from '../components/ui/Toast'
-import { useApp } from '../lib/store'
+import { AuthCard, AuthLayout } from '@/components/layout/AuthLayout'
+import { Button } from '@/components/ui/Button'
+import { FieldError, Input, Label } from '@/components/ui/Field'
+import { GoogleIcon } from '@/components/ui/GoogleIcon'
+import { Logo } from '@/components/ui/Logo'
+import { useToast } from '@/components/ui/Toast'
+import { useApp } from '@/lib/store'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -170,4 +170,3 @@ export function Login() {
     </AuthLayout>
   )
 }
-

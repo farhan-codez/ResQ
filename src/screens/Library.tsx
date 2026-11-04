@@ -1,18 +1,18 @@
-﻿import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { ArrowLeft, ArrowRight, Camera, FilterX, Inbox, MapPin, Moon, Plus, Satellite, Search, SearchX, Send, Siren, Sun, Trash2, Upload, Users } from 'lucide-react'
-import { Button, IconButton } from '../components/ui/Button'
-import { SeverityChip, StatusChip } from '../components/ui/Chips'
-import { FieldError, Hint, Input, Label, Select, Textarea } from '../components/ui/Field'
-import { Logo, LogoMark } from '../components/ui/Logo'
-import { Skeleton } from '../components/ui/Skeleton'
-import { ToastView } from '../components/ui/Toast'
-import { SeverityPicker } from '../components/report/SeverityPicker'
-import { markerHtml } from '../components/map/markers'
-import { ReportRow } from '../screens/ReportsList'
-import { INITIAL_REPORTS } from '../lib/data'
-import { SEVERITY_ORDER, STATUS_ORDER, cx, formatCoords, timeAgo } from '../lib/meta'
-import { useApp } from '../lib/store'
-import type { Severity } from '../lib/types'
+import { Button, IconButton } from '@/components/ui/Button'
+import { SeverityChip, StatusChip } from '@/components/ui/Chips'
+import { FieldError, Hint, Input, Label, Select, Textarea } from '@/components/ui/Field'
+import { Logo, LogoMark } from '@/components/ui/Logo'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { ToastView } from '@/components/ui/Toast'
+import { SeverityPicker } from '@/components/report/SeverityPicker'
+import { markerHtml } from '@/components/map/markers'
+import { ReportRow } from '@/screens/ReportsList'
+import { INITIAL_REPORTS } from '@/lib/data'
+import { SEVERITY_ORDER, STATUS_ORDER, cx, formatCoords, timeAgo } from '@/lib/meta'
+import { useApp } from '@/lib/store'
+import type { Severity } from '@/lib/types'
 
 function Section({ id, title, desc, children }: { id: string; title: string; desc?: string; children: ReactNode }) {
   return (
@@ -49,7 +49,7 @@ function Swatch({ token, name }: { token: string; name: string }) {
       <div className="px-3 py-2">
         <p className="text-sm font-medium text-fg">{name}</p>
         <p className="tabular font-mono text-xs text-fg-muted">
-          --{token} Â· {hex}
+          --{token} · {hex}
         </p>
       </div>
     </div>
@@ -138,16 +138,16 @@ export function Library() {
               <div className="grid gap-8 md:grid-cols-2">
                 <Spec label="Severity (always with icon and label)">
                   <div className="grid grid-cols-3 gap-3">
-                    <Swatch token="low" name="Low Â· amber" />
-                    <Swatch token="medium" name="Medium Â· orange" />
-                    <Swatch token="high" name="High Â· red" />
+                    <Swatch token="low" name="Low · amber" />
+                    <Swatch token="medium" name="Medium · orange" />
+                    <Swatch token="high" name="High · red" />
                   </div>
                 </Spec>
                 <Spec label="Status">
                   <div className="grid grid-cols-3 gap-3">
-                    <Swatch token="pending-fg" name="Pending Â· grey" />
-                    <Swatch token="investigating-fg" name="Investigating Â· blue" />
-                    <Swatch token="resolved-fg" name="Resolved Â· green" />
+                    <Swatch token="pending-fg" name="Pending · grey" />
+                    <Swatch token="investigating-fg" name="Investigating · blue" />
+                    <Swatch token="resolved-fg" name="Resolved · green" />
                   </div>
                 </Spec>
               </div>
@@ -164,7 +164,7 @@ export function Library() {
                   ].map(([px, cls, name]) => (
                     <div key={px} className="flex items-baseline gap-6 px-4 py-3">
                       <span className="tabular w-24 shrink-0 text-xs text-fg-muted">
-                        {px}px Â· {name}
+                        {px}px · {name}
                       </span>
                       <span className={cx('truncate text-fg', cls)}>Report what you see</span>
                     </div>
@@ -329,7 +329,7 @@ export function Library() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-fg">Kyebi, Eastern Region</p>
-                    <p className="tabular text-xs text-fg-muted">{formatCoords(6.1652, -0.5518)} Â· Auto-detected</p>
+                    <p className="tabular text-xs text-fg-muted">{formatCoords(6.1652, -0.5518)} · Auto-detected</p>
                   </div>
                   <Button variant="link" size="sm">
                     Change location
@@ -526,4 +526,3 @@ export function Library() {
     </div>
   )
 }
-

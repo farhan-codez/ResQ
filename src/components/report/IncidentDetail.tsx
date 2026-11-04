@@ -1,16 +1,16 @@
-﻿import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Check, EyeOff, MapPin, ShieldCheck, Users, X, Clock, Map as MapIcon, ChevronDown } from 'lucide-react'
-import { Button, IconButton } from '../../components/ui/Button'
-import { SeverityChip, StatusChip } from '../../components/ui/Chips'
-import { Select } from '../../components/ui/Field'
-import { Skeleton } from '../../components/ui/Skeleton'
-import { useToast } from '../../components/ui/Toast'
-import { MapThumb } from '../../components/map/ReportsMap'
-import { TEAMS } from '../../lib/data'
-import { STATUS, STATUS_ORDER, cx, formatCoords, formatDateTime, timeAgo } from '../../lib/meta'
-import { useApp } from '../../lib/store'
-import { useDismiss } from '../../lib/useDismiss'
-import type { Status } from '../../lib/types'
+import { Button, IconButton } from '@/components/ui/Button'
+import { SeverityChip, StatusChip } from '@/components/ui/Chips'
+import { Select } from '@/components/ui/Field'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { useToast } from '@/components/ui/Toast'
+import { MapThumb } from '@/components/map/ReportsMap'
+import { TEAMS } from '@/lib/data'
+import { STATUS, STATUS_ORDER, cx, formatCoords, formatDateTime, timeAgo } from '@/lib/meta'
+import { useApp } from '@/lib/store'
+import { useDismiss } from '@/lib/useDismiss'
+import type { Status } from '@/lib/types'
 
 const dotTone: Record<Status, string> = {
   pending: 'bg-pending-fg',
@@ -170,7 +170,7 @@ export function IncidentDetail({ id, onClose, onShowOnMap }: { id: string; onClo
                     <p className="flex items-center gap-1.5 text-sm text-fg-muted">
                       <MapPin className="size-4 shrink-0" aria-hidden />
                       <span>
-                        {report.place}, {report.region} Â· <span className="tabular">{formatCoords(report.lat, report.lng)}</span>
+                        {report.place}, {report.region} · <span className="tabular">{formatCoords(report.lat, report.lng)}</span>
                       </span>
                     </p>
                     {onShowOnMap && (
@@ -220,7 +220,7 @@ export function IncidentDetail({ id, onClose, onShowOnMap }: { id: string; onClo
                           <div className="min-w-0">
                             <p className="text-sm font-medium text-fg">{t.label}</p>
                             <p className="text-xs text-fg-muted">
-                              {t.by} Â· {formatDateTime(t.at)}
+                              {t.by} · {formatDateTime(t.at)}
                             </p>
                           </div>
                         </li>
@@ -294,4 +294,3 @@ export function IncidentDetail({ id, onClose, onShowOnMap }: { id: string; onClo
     </div>
   )
 }
-

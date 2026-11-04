@@ -1,13 +1,13 @@
-﻿import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { ChevronUp, Siren } from 'lucide-react'
-import { AppShell, BottomSheet } from '../components/layout/AppShell'
-import { ReportsMap, type MapHandle } from '../components/map/ReportsMap'
-import { ReportForm, type DraftLocation } from '../components/report/ReportForm'
-import { IncidentDetail } from '../components/report/IncidentDetail'
-import { Skeleton } from '../components/ui/Skeleton'
-import { DEFAULT_LOCATION, INITIAL_REPORTS } from '../lib/data'
-import { useApp } from '../lib/store'
-import { useIsMobile } from '../lib/useMediaQuery'
+import { AppShell, BottomSheet } from '@/components/layout/AppShell'
+import { ReportsMap, type MapHandle } from '@/components/map/ReportsMap'
+import { ReportForm, type DraftLocation } from '@/components/report/ReportForm'
+import { IncidentDetail } from '@/components/report/IncidentDetail'
+import { Skeleton } from '@/components/ui/Skeleton'
+import { DEFAULT_LOCATION, INITIAL_REPORTS } from '@/lib/data'
+import { useApp } from '@/lib/store'
+import { useIsMobile } from '@/lib/useMediaQuery'
 
 function nearestPlace(lat: number, lng: number) {
   let best = INITIAL_REPORTS[0]
@@ -194,4 +194,3 @@ export function Dashboard() {
     </AppShell>
   )
 }
-
