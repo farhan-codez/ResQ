@@ -76,7 +76,7 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-8 bg-resq-deep">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-water/10 flex items-center justify-center text-water">
+            <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center text-green-400 shadow-[0_0_20px_rgba(16,185,129,0.3)]">
               <ShieldCheck className="w-4 h-4" />
             </div>
             <h2 className="text-xl font-bold text-white tracking-tight">Sign in to ResQ</h2>
@@ -154,7 +154,7 @@ export default function Login() {
             Don't have an account?{' '}
             <button
               onClick={() => navigate('/register')}
-              className="text-water font-medium hover:text-cyan-400 transition-colors underline decoration-water/30 decoration-underline"
+              className="text-green-400 font-medium hover:text-green-300 transition-colors underline decoration-green-400/30 decoration-underline"
             >
               Create an account
             </button>

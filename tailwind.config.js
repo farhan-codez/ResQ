@@ -5,22 +5,16 @@ export default {
     extend: {
       colors: {
         resq: {
-          deep: '#0b1120',
+          deep: '#064e3b',
           slate: '#0f172a',
-          water: '#0ea5e9',
+          green: '#10b981',
+          light: '#d1fae5',
         },
-        deep: '#0b1120',
-        water: '#0ea5e9',
+        deep: '#064e3b',
+        green: '#10b981',
       },
       fontFamily: {
-        sans: [
-          'system-ui',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          'Segoe UI',
-          'Roboto',
-          'sans-serif',
-        ],
+        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
         mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       animation: {

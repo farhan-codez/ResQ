@@ -25,7 +25,7 @@ export default function Sidebar({ isOpen, onClose }) {
     >
       <div className="flex items-center justify-between h-16 px-6 border-b border-slate-800">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-water to-cyan-600 flex items-center justify-center text-[10px] font-bold shadow-[0_0_12px_rgba(14,165,233,0.5)]">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-[10px] font-bold shadow-[0_0_12px_rgba(16,185,129,0.5)]">
             {user?.fullName?.[0] || user?.email?.[0] || 'R'}
           </div>
           <span className="font-bold text-white text-sm tracking-tight">ResQ</span>
@@ -48,7 +48,7 @@ export default function Sidebar({ isOpen, onClose }) {
               onClick={() => onClose?.()}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
                 active
-                  ? 'bg-water/10 text-water border border-water/20 shadow-[0_0_15px_rgba(14,165,233,0.15)]'
+                  ? 'bg-green-500/10 text-green-400 border border-green-500/20 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
                   : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
               }`}
             >

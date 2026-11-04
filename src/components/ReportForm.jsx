@@ -192,3 +192,5 @@ export default function ReportForm({ onSuccess }) {
     </section>
   );
 }
+
+export {};
