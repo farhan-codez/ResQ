@@ -5,7 +5,7 @@ import { Check, Crosshair, Layers, LocateFixed, Minus, Plus, Satellite, X } from
 import { IconButton, Button } from '@/components/ui/Button'
 import { SeverityChip, StatusChip } from '@/components/ui/Chips'
 import { useToast } from '@/components/ui/Toast'
-import { DETECTIONS, GHANA_CENTER } from '@/lib/data'
+import { GHANA_CENTER } from '@/lib/data'
 import { SEVERITY, SEVERITY_ORDER, cx, timeAgo } from '@/lib/meta'
 import { useDismiss } from '@/lib/useDismiss'
 import { useApp } from '@/lib/store'
@@ -62,7 +62,7 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
   { reports, selectedId, onViewDetails, draft, pickMode, onPick, onCancelPick, compact, loading },
   ref,
 ) {
-  const { theme } = useApp()
+  const { theme, detections } = useApp()
   const toast = useToast()
   const mapRef = useRef<L.Map | null>(null)
   const markerRefs = useRef(new Map<string, L.Marker>())
@@ -123,7 +123,7 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
           mapRef.current = m
         }} pickMode={pickMode} onPick={onPick} />
         {showDetections &&
-          DETECTIONS.map((d) => (
+          detections.map((d) => (
             <Polygon
               key={d.id}
               positions={d.points}

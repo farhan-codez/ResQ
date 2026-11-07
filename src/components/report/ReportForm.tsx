@@ -5,6 +5,7 @@ import { FieldError, Hint, Input, Label, Textarea } from '@/components/ui/Field'
 import { SeverityChip, StatusChip } from '@/components/ui/Chips'
 import { useToast } from '@/components/ui/Toast'
 import { SEVERITY, cx, formatCoords } from '@/lib/meta'
+import { newReportId } from '@/lib/api'
 import { useApp } from '@/lib/store'
 import type { Report, Severity } from '@/lib/types'
 import { SeverityPicker } from './SeverityPicker'
@@ -50,7 +51,7 @@ export function ReportForm({
   const [description, setDescription] = useState('')
   const [severity, setSeverity] = useState<Severity | null>(null)
   const [anonymous, setAnonymous] = useState(false)
-  const [photos, setPhotos] = useState<{ url: string; name: string }[]>([])
+  const [photos, setPhotos] = useState<{ url: string; name: string; file: File }[]>([])
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({})
   const [submitting, setSubmitting] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -109,14 +110,14 @@ export function ReportForm({
     if (errors.severity) return (sevRef.current?.querySelector('[tabindex="0"]') as HTMLElement | null)?.focus()
     setSubmitting(true)
     setFailed(false)
-    window.setTimeout(() => {
-      setSubmitting(false)
-      if (simulateFailure) {
+    void (async () => {
+      const showFailure = () => {
+        setSubmitting(false)
         setFailed(true)
         setTimeout(() => errorRef.current?.focus(), 0)
-        return
       }
-      const id = `RQ-${2500 + Math.floor(Math.random() * 400)}`
+      if (simulateFailure) return showFailure()
+      const id = newReportId()
       const now = Date.now()
       const [place, region = 'Ghana'] = location.place.split(',').map((s) => s.trim().replace(/ Region$/, ''))
       const report: Report = {
@@ -134,10 +135,15 @@ export function ReportForm({
         reporter: { name: anonymous ? 'Anonymous' : user.name, anonymous },
         timeline: [{ id: `${id}-t0`, at: now, label: 'Report submitted', by: anonymous ? 'Anonymous' : user.name, status: 'pending' }],
       }
-      addReport(report)
+      try {
+        await addReport(report, photos.map((p) => p.file))
+      } catch {
+        return showFailure()
+      }
+      setSubmitting(false)
       setSent(report)
       toast({ tone: 'success', title: 'Report sent. Regulators can see it now.', action: { label: 'View on map', onClick: () => onViewOnMap(id) } })
-    }, 1400)
+    })()
   }
 
   if (sent) {
@@ -298,7 +304,7 @@ export function ReportForm({
           aria-describedby="r-photo-hint"
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []).slice(0, 4 - photos.length)
-            setPhotos((p) => [...p, ...files.map((f) => ({ url: URL.createObjectURL(f), name: f.name }))])
+            setPhotos((p) => [...p, ...files.map((f) => ({ url: URL.createObjectURL(f), name: f.name, file: f }))])
             e.target.value = ''
           }}
         />

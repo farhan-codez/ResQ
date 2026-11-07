@@ -24,13 +24,15 @@ function AssignTeam({ reportId, current }: { reportId: string; current?: string 
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useDismiss(ref, open, () => setOpen(false))
-  const choose = (team: string) => {
+  const choose = async (team: string) => {
     setOpen(false)
-    if (simulateFailure) {
-      toast({ tone: 'error', title: "We couldn't assign the team.", description: 'Nothing was changed. Check your connection.', action: { label: 'Try again', onClick: () => choose(team) } })
-      return
+    const failToast = () => toast({ tone: 'error', title: "We couldn't assign the team.", description: 'Nothing was changed. Check your connection.', action: { label: 'Try again', onClick: () => choose(team) } })
+    if (simulateFailure) return failToast()
+    try {
+      await assignTeam(reportId, team)
+    } catch {
+      return failToast()
     }
-    assignTeam(reportId, team)
     toast({ tone: 'success', title: `Assigned to ${team}.`, description: 'The team lead has been notified.' })
   }
   return (
@@ -92,13 +94,15 @@ export function IncidentDetail({ id, onClose, onShowOnMap }: { id: string; onClo
     }
   }, [onClose])
 
-  const changeStatus = (s: Status) => {
+  const changeStatus = async (s: Status) => {
     if (!report) return
-    if (simulateFailure) {
-      toast({ tone: 'error', title: "We couldn't update the status.", description: 'Nothing was changed. Check your connection.', action: { label: 'Try again', onClick: () => changeStatus(s) } })
-      return
+    const failToast = () => toast({ tone: 'error', title: "We couldn't update the status.", description: 'Nothing was changed. Check your connection.', action: { label: 'Try again', onClick: () => changeStatus(s) } })
+    if (simulateFailure) return failToast()
+    try {
+      await updateStatus(report.id, s)
+    } catch {
+      return failToast()
     }
-    updateStatus(report.id, s)
     toast({ tone: 'success', title: `Status changed to ${STATUS[s].label}.`, description: 'The reporter will be notified.' })
   }
 
