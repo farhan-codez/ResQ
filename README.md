@@ -1,38 +1,18 @@
-# ResQ — Galamsey & Water Pollution Reporting MVP
+# ResQ
 
-Real-time community reporting dashboard to curb illegal mining (Galamsey) and water pollution in Ghana.
+Galamsey and water pollution reporting. React + Vite + Tailwind frontend, Supabase backend.
 
-## Features
-- **Auth**: Login / register / guest access (persisted in localStorage, ready to wire to Supabase Auth)
-- **Split-screen dashboard**: emergency report form + live activity feed (left) • fullscreen geospatial map (right)
-- **Browser geolocation** via `navigator.geolocation`, severity-coded map markers (Red/Orange/Yellow)
-- **Satellite overlays**: Street Map (OSM) • True Color (Sentinel-2) • Turbidity & Vegetation Degradation (Sentinel Hub WMS NDWI/NDVI over Pra, Ankobra, Birim basins)
-- **Supabase realtime**: `.on('postgres_changes', ...)` — new reports push markers to the map instantly, no refresh
-- **Beautiful UI**: dark ops-theme, glass panels, Lucide icons, Tailwind, responsive sidebar/header
+## Run
+1. `pnpm install`
+2. Put your anon key in `.env` (`VITE_SUPABASE_ANON_KEY`). Without it the app runs in demo mode (seed data, fake sign-in).
+3. Supabase SQL editor: run `supabase/migrations/0001_create_complaints.sql`, then `0002_connect_frontend.sql`.
+4. Supabase > Authentication: turn **Confirm email** off (signup uploads the Ghana Card right after account creation). For Google sign-in, enable the Google provider and add your site URL to Redirect URLs.
+5. `pnpm dev`
+6. Make a regulator: `update public.profiles set role = 'regulator' where email = 'you@gmail.com';`
 
-## Stack
-React 18 · Vite · Tailwind CSS · Lucide React · React-Leaflet · Leaflet · React Router · Supabase JS
-
-## Setup
-```bash
-cd ResQ
-npm install
-cp .env.example .env   # add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY
-npm run dev
-```
-
-1. Run `supabase/migrations/0001_create_complaints.sql` in your Supabase SQL editor.
-2. Enable Realtime for `public.complaints` (Database → Replication).
-3. Open `http://localhost:5173` — sign in, submit a report, watch the marker appear live.
-
-## Pages
-- `/` — Login
-- `/register` — Create account
-- `/dashboard` — Split-screen map + report form + activity feed
-- `/report` — Dedicated report submission
-- `/reports` — Full activity feed
-- `/satellite` — Satellite layer info
-- `/settings` — App settings
-
-## License
-MIT
+## Backend map
+- Auth: Login, Signup, Google, Sign out -> Supabase Auth. Role comes from `profiles.role`.
+- Reports: `complaints` (live via realtime). Timeline: `complaint_events` (written by DB trigger).
+- Photos: `report-photos` bucket (public). Ghana Card: `ghana-cards` bucket (private).
+- Status and team changes: regulators only (RLS).
+- Map overlays: `detections` table (filled by the Earth Engine worker with the service role key).
