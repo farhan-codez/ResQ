@@ -7,6 +7,7 @@ import { GoogleIcon } from '@/components/ui/GoogleIcon'
 import { Logo } from '@/components/ui/Logo'
 import { useToast } from '@/components/ui/Toast'
 import { useApp } from '@/lib/store'
+import { isSupabaseConfigured, supabase } from '@/lib/supabaseClient'
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -32,13 +33,26 @@ export function Login() {
     if (pwErr) return pwRef.current?.focus()
     setAuthError(false)
     setLoading('password')
+    const fail = () => {
+      setLoading(null)
+      setAuthError(true)
+      setTimeout(() => errRef.current?.focus(), 0)
+    }
+    if (isSupabaseConfigured) {
+      if (simulateFailure) return fail()
+      supabase.auth
+        .signInWithPassword({ email: email.trim(), password })
+        .then(({ error }) => {
+          if (error) return fail()
+          setLoading(null)
+          navigate({ name: 'dashboard' })
+        })
+        .catch(fail)
+      return
+    }
     setTimeout(() => {
       setLoading(null)
-      if (simulateFailure || password.toLowerCase() === 'wrong') {
-        setAuthError(true)
-        setTimeout(() => errRef.current?.focus(), 0)
-        return
-      }
+      if (simulateFailure || password.toLowerCase() === 'wrong') return fail()
       navigate({ name: 'dashboard' })
     }, 1200)
   }
@@ -151,6 +165,17 @@ export function Login() {
           disabled={loading === 'password'}
           onClick={() => {
             setLoading('google')
+            if (isSupabaseConfigured) {
+              supabase.auth
+                .signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}${window.location.pathname}` } })
+                .then(({ error }) => {
+                  if (error) {
+                    setLoading(null)
+                    toast({ tone: 'error', title: "We couldn't reach Google.", description: 'Check your connection and try again.' })
+                  }
+                })
+              return
+            }
             setTimeout(() => navigate({ name: 'dashboard' }), 1200)
           }}
         >

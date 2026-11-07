@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { INITIAL_REPORTS } from './data'
-import type { Report, Role, Status } from './types'
-import { supabase, isSupabaseConfigured, complaintToReport } from './supabaseClient'
+import { DETECTIONS, INITIAL_REPORTS } from './data'
+import type { Detection, Report, Role, Status } from './types'
+import { supabase, isSupabaseConfigured } from './supabaseClient'
+import { fetchDetections, fetchEvents, fetchProfile, fetchReports, insertReport, setComplaintStatus, setComplaintTeam, toReport } from './api'
 
 export type Route =
   | { name: 'library' }
@@ -48,9 +49,14 @@ interface AppState {
   role: Role
   setRole: (r: Role) => void
   reports: Report[]
-  addReport: (r: Report) => void
-  updateStatus: (id: string, status: Status) => void
-  assignTeam: (id: string, team: string) => void
+  detections: Detection[]
+  /** Rejects if the backend refuses the write. */
+  addReport: (r: Report, photoFiles?: File[]) => Promise<void>
+  updateStatus: (id: string, status: Status) => Promise<void>
+  assignTeam: (id: string, team: string) => Promise<void>
+  signOut: () => Promise<void>
+  authReady: boolean
+  signedIn: boolean
   simulateFailure: boolean
   setSimulateFailure: (v: boolean) => void
   emptyData: boolean
@@ -80,7 +86,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash))
   const [theme, setThemeState] = useState<Theme>(() => stored<Theme>('theme', 'light'))
   const [role, setRoleState] = useState<Role>(() => stored<Role>('role', 'regulator'))
-  const [reports, setReports] = useState<Report[]>(INITIAL_REPORTS)
+  const [reports, setReports] = useState<Report[]>(isSupabaseConfigured ? [] : INITIAL_REPORTS)
+  const [detections, setDetections] = useState<Detection[]>(isSupabaseConfigured ? [] : DETECTIONS)
+  const [session, setSession] = useState<{ id: string; email: string; name: string } | null>(null)
+  const [authReady, setAuthReady] = useState(!isSupabaseConfigured)
   const [simulateFailure, setSimulateFailure] = useState(false)
   const [emptyData, setEmptyData] = useState(false)
 
@@ -94,42 +103,91 @@ export function AppProvider({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle('dark', theme === 'dark')
   }, [theme])
 
-  // Supabase: load existing complaints + subscribe to realtime inserts
+  // Auth session (Supabase). Demo mode skips this and keeps the original simulated sign-in.
   useEffect(() => {
     if (!isSupabaseConfigured) return
-
-    const client = supabase
-    if (!client) return
-
     let cancelled = false
-    const load = async () => {
-      const { data, error } = await client
-        .from('complaints')
-        .select('*')
-        .order('created_at', { ascending: false })
-      if (error || cancelled) return
-      setReports((data || []).map(complaintToReport))
+    const apply = async (s: { user: { id: string; email?: string; user_metadata?: Record<string, any> } } | null) => {
+      if (cancelled) return
+      if (!s) {
+        setSession(null)
+        setRoleState('citizen')
+        setAuthReady(true)
+        return
+      }
+      const u = s.user
+      const meta = u.user_metadata ?? {}
+      const fallbackName = (meta.full_name as string) || (meta.name as string) || (u.email ?? 'Citizen')
+      setSession({ id: u.id, email: u.email ?? '', name: fallbackName })
+      setAuthReady(true)
+      const profile = await fetchProfile(u.id)
+      if (cancelled || !profile) return
+      setSession({ id: u.id, email: profile.email || u.email || '', name: profile.name })
+      setRoleState(profile.role)
     }
-    load()
+    supabase.auth.getSession().then(({ data }) => apply(data.session))
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      // Defer: awaiting supabase calls inside this callback can deadlock the auth client.
+      setTimeout(() => apply(s), 0)
+    })
+    return () => {
+      cancelled = true
+      sub.subscription.unsubscribe()
+    }
+  }, [])
 
-    const channel = client
-      .channel('realtime:complaints')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'complaints' },
-        (payload) => {
-          if (cancelled) return
-          const report = complaintToReport(payload.new as any)
-          setReports((prev) => (prev.some((r) => r.id === report.id) ? prev : [report, ...prev]))
-        },
-      )
+  // Route guard: reports and map need a signed-in user. Signed-in users skip the login screen.
+  useEffect(() => {
+    if (!isSupabaseConfigured || !authReady) return
+    if (!session && (route.name === 'dashboard' || route.name === 'reports')) navigate({ name: 'login' })
+    else if (session && route.name === 'login') navigate({ name: 'dashboard' })
+  }, [authReady, session, route]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Complaints + detections: load and stay live (signed-in only, so RLS-visible rows match the session).
+  const userId = session?.id
+  useEffect(() => {
+    if (!isSupabaseConfigured || !userId) return
+    let cancelled = false
+    const guard = <T,>(fn: (v: T) => void) => (v: T) => {
+      if (!cancelled) fn(v)
+    }
+    fetchReports().then(guard(setReports)).catch(() => {})
+    fetchDetections().then(guard(setDetections)).catch(() => {})
+
+    const refreshTimeline = async (id: string) => {
+      try {
+        const ev = await fetchEvents(id)
+        if (cancelled) return
+        setReports((prev) => prev.map((r) => (r.id === id ? { ...r, timeline: toReport({ ...rowOf(r) } as any, ev).timeline } : r)))
+      } catch {}
+    }
+    const rowOf = (r: Report) => ({ id: r.id, created_at: new Date(r.createdAt).toISOString(), title: r.title, description: r.description, latitude: r.lat, longitude: r.lng, severity: r.severity, status: r.status, place: r.place, region: r.region, photos: r.photos, reporter_name: r.reporter.name, is_anonymous: r.reporter.anonymous, assigned_team: r.assignedTeam ?? null })
+
+    const channel = supabase
+      .channel('realtime:resq')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'complaints' }, (payload) => {
+        if (cancelled) return
+        const report = toReport(payload.new as any)
+        setReports((prev) => (prev.some((r) => r.id === report.id) ? prev : [report, ...prev]))
+        refreshTimeline(report.id)
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'complaints' }, (payload) => {
+        if (cancelled) return
+        const next = toReport(payload.new as any)
+        setReports((prev) => prev.map((r) => (r.id === next.id ? { ...next, timeline: r.timeline } : r)))
+        refreshTimeline(next.id)
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'complaint_events' }, (payload) => {
+        const id = (payload.new as { complaint_id: string }).complaint_id
+        refreshTimeline(id)
+      })
       .subscribe()
 
     return () => {
       cancelled = true
-      client.removeChannel(channel)
+      supabase.removeChannel(channel)
     }
-  }, [isSupabaseConfigured])
+  }, [userId])
 
   const navigate = useCallback((r: Route) => {
     const h = routeToHash(r)
@@ -151,24 +209,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addReport = useCallback(
-    async (r: Report) => {
-      setReports((prev) => (prev.some((p) => p.id === r.id) ? prev : [r, ...prev]))
-      if (!isSupabaseConfigured || !supabase) return
-      await supabase.from('complaints').insert([
-        {
-          id: r.id,
-          title: r.title,
-          description: r.description,
-          latitude: r.lat,
-          longitude: r.lng,
-          severity: r.severity,
-        },
-      ])
+    async (r: Report, photoFiles: File[] = []) => {
+      if (!isSupabaseConfigured) {
+        setReports((prev) => (prev.some((p) => p.id === r.id) ? prev : [r, ...prev]))
+        return
+      }
+      if (!session) throw new Error('Sign in to send a report.')
+      const photos = await insertReport(r, photoFiles, session.id)
+      const saved = { ...r, photos }
+      // Realtime also delivers this row; the id check keeps it from doubling.
+      setReports((prev) => (prev.some((p) => p.id === saved.id) ? prev : [saved, ...prev]))
     },
-    [isSupabaseConfigured],
+    [session],
   )
 
-  const updateStatus = useCallback((id: string, status: Status) => {
+  const updateStatus = useCallback(async (id: string, status: Status) => {
+    if (isSupabaseConfigured) {
+      await setComplaintStatus(id, status)
+      return
+    }
     setReports((prev) =>
       prev.map((r) =>
         r.id === id && r.status !== status
@@ -185,7 +244,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
-  const assignTeam = useCallback((id: string, team: string) => {
+  const assignTeam = useCallback(async (id: string, team: string) => {
+    if (isSupabaseConfigured) {
+      await setComplaintTeam(id, team)
+      return
+    }
     setReports((prev) =>
       prev.map((r) =>
         r.id === id
@@ -199,6 +262,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
+  const signOut = useCallback(async () => {
+    if (isSupabaseConfigured) await supabase.auth.signOut()
+    setReports(isSupabaseConfigured ? [] : INITIAL_REPORTS)
+  }, [])
+
   const value = useMemo<AppState>(
     () => ({
       route,
@@ -208,17 +276,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
       role,
       setRole,
       reports: emptyData ? reports.filter((r) => !SEED_IDS.has(r.id)) : reports,
+      detections,
       addReport,
       updateStatus,
       assignTeam,
+      signOut,
+      authReady,
+      signedIn: isSupabaseConfigured ? !!session : true,
       simulateFailure,
       setSimulateFailure,
       emptyData,
       setEmptyData,
       embedded,
-      user: { name: 'Ama Mensah', email: 'ama.mensah@gmail.com' },
+      user: isSupabaseConfigured ? { name: session?.name ?? '', email: session?.email ?? '' } : { name: 'Ama Mensah', email: 'ama.mensah@gmail.com' },
     }),
-    [route, navigate, theme, setTheme, role, setRole, reports, addReport, updateStatus, assignTeam, simulateFailure, emptyData],
+    [route, navigate, theme, setTheme, role, setRole, reports, detections, addReport, updateStatus, assignTeam, signOut, authReady, session, simulateFailure, emptyData],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

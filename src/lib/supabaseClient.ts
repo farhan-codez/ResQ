@@ -1,50 +1,12 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
-import type { Report } from './types';
+import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const url = import.meta.env.VITE_SUPABASE_URL as string | undefined
+const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined
 
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+/** False until both env vars are set. The app then runs in its original demo mode (seed data, simulated auth). */
+export const isSupabaseConfigured = Boolean(url && key && !key.startsWith('your-'))
 
-// Only create a client when both env vars exist — createClient throws on empty strings.
-export const supabase: SupabaseClient | null = isSupabaseConfigured
-  ? createClient(supabaseUrl as string, supabaseAnonKey as string)
-  : null;
-
-export interface ComplaintRow {
-  id: string;
-  created_at: string;
-  title: string;
-  description: string;
-  latitude: number;
-  longitude: number;
-  severity: 'low' | 'medium' | 'high';
-  status: string;
-  is_satellite_verified: boolean;
-}
-
-export function complaintToReport(c: ComplaintRow): Report {
-  return {
-    id: c.id,
-    title: c.title,
-    description: c.description,
-    severity: c.severity,
-    status: (c.status ?? 'pending') as any,
-    lat: c.latitude,
-    lng: c.longitude,
-    place: 'Ghana',
-    region: 'Ghana',
-    createdAt: new Date(c.created_at).getTime(),
-    photos: [],
-    reporter: { name: 'Citizen', anonymous: true },
-    timeline: [
-      {
-        id: `${c.id}-t0`,
-        at: new Date(c.created_at).getTime(),
-        label: 'Report submitted',
-        by: 'Citizen',
-        status: (c.status ?? 'pending') as any,
-      },
-    ],
-  };
-}
+export const supabase = createClient(isSupabaseConfigured ? url! : 'http://localhost', isSupabaseConfigured ? key! : 'unconfigured', {
+  // PKCE keeps OAuth tokens out of the URL hash, which the app uses for routing.
+  auth: { flowType: 'pkce', persistSession: isSupabaseConfigured, autoRefreshToken: isSupabaseConfigured, detectSessionInUrl: isSupabaseConfigured },
+})

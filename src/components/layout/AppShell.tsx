@@ -183,11 +183,12 @@ function Segmented<T extends string>({ value, options, onChange, label }: { valu
 }
 
 export function AccountPanel({ onClose }: { onClose: () => void }) {
-  const { user, role, setRole, theme, setTheme, navigate } = useApp()
+  const { user, role, setRole, theme, setTheme, navigate, signOut } = useApp()
+  const initials = user.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?'
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-3 border-b border-border p-4">
-        <span className="flex size-10 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand-soft-fg">AM</span>
+        <span className="flex size-10 items-center justify-center rounded-full bg-brand-soft text-sm font-semibold text-brand-soft-fg">{initials}</span>
         <div className="min-w-0">
           <p className="truncate text-sm font-medium text-fg">{user.name}</p>
           <p className="truncate text-xs text-fg-muted">{user.email}</p>
@@ -234,7 +235,7 @@ export function AccountPanel({ onClose }: { onClose: () => void }) {
           type="button"
           onClick={() => {
             onClose()
-            navigate({ name: 'login' })
+            void signOut().finally(() => navigate({ name: 'login' }))
           }}
           className="flex h-11 w-full cursor-pointer items-center gap-3 rounded-md px-3 text-sm text-fg hover:bg-surface-2 md:h-10"
         >

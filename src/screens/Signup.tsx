@@ -1,11 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ArrowLeft, ArrowRight, Camera, CameraOff, Check, CircleCheck, LoaderCircle, RotateCcw, Upload, Sun, Square, Scan } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Camera, CameraOff, Check, CircleAlert, CircleCheck, Eye, EyeOff, LoaderCircle, RotateCcw, Upload, Sun, Square, Scan } from 'lucide-react'
 import { AuthCard, AuthLayout } from '@/components/layout/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { FieldError, Input, Label } from '@/components/ui/Field'
 import { Logo } from '@/components/ui/Logo'
 import { cx } from '@/lib/meta'
+import { useToast } from '@/components/ui/Toast'
+import { uploadGhanaCard } from '@/lib/api'
 import { useApp } from '@/lib/store'
+import { isSupabaseConfigured, supabase } from '@/lib/supabaseClient'
 
 const STEPS = ['Details', 'Ghana Card', 'Done'] as const
 
@@ -30,10 +33,15 @@ function Progress({ step }: { step: number }) {
   )
 }
 
-function DetailsStep({ onNext, initial }: { onNext: (v: { name: string; email: string }) => void; initial: { name: string; email: string } }) {
+type Details = { name: string; email: string; password: string }
+
+function DetailsStep({ onNext, initial }: { onNext: (v: Details) => void; initial: Details }) {
   const [name, setName] = useState(initial.name)
   const [email, setEmail] = useState(initial.email)
-  const [touched, setTouched] = useState({ name: false, email: false })
+  const [password, setPassword] = useState(initial.password)
+  const [show, setShow] = useState(false)
+  const [touched, setTouched] = useState({ name: false, email: false, password: false })
+  const pwRef = useRef<HTMLInputElement>(null)
   const nameRef = useRef<HTMLInputElement>(null)
   const emailRef = useRef<HTMLInputElement>(null)
 
@@ -41,16 +49,19 @@ function DetailsStep({ onNext, initial }: { onNext: (v: { name: string; email: s
   const e = email.trim().toLowerCase()
   const emailErr = !e ? 'Enter your Gmail address.' : !/^[a-z0-9.+_-]+@gmail\.com$/.test(e) ? 'Use a Gmail address, like ama.mensah@gmail.com' : undefined
 
+  const pwErr = !password ? 'Create a password.' : password.length < 8 ? 'Use at least 8 characters.' : undefined
+
   return (
     <form
       noValidate
       className="flex flex-col gap-4"
       onSubmit={(ev) => {
         ev.preventDefault()
-        setTouched({ name: true, email: true })
+        setTouched({ name: true, email: true, password: true })
         if (nameErr) return nameRef.current?.focus()
         if (emailErr) return emailRef.current?.focus()
-        onNext({ name: name.trim(), email: e })
+        if (pwErr) return pwRef.current?.focus()
+        onNext({ name: name.trim(), email: e, password })
       }}
     >
       <div className="flex flex-col gap-1.5">
@@ -84,6 +95,32 @@ function DetailsStep({ onNext, initial }: { onNext: (v: { name: string; email: s
         />
         <FieldError id="s-email-err">{touched.email && emailErr}</FieldError>
       </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="s-pw">Password</Label>
+        <Input
+          ref={pwRef}
+          id="s-pw"
+          type={show ? 'text' : 'password'}
+          autoComplete="new-password"
+          value={password}
+          onChange={(ev) => setPassword(ev.target.value)}
+          onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+          invalid={touched.password && !!pwErr}
+          aria-describedby={touched.password && pwErr ? 's-pw-err' : undefined}
+          trailing={
+            <button
+              type="button"
+              onClick={() => setShow((v) => !v)}
+              aria-label={show ? 'Hide password' : 'Show password'}
+              aria-pressed={show}
+              className="inline-flex size-9 cursor-pointer items-center justify-center rounded-md text-fg-muted hover:bg-surface-2 hover:text-fg"
+            >
+              {show ? <EyeOff className="size-5" aria-hidden /> : <Eye className="size-5" aria-hidden />}
+            </button>
+          }
+        />
+        <FieldError id="s-pw-err">{touched.password && pwErr}</FieldError>
+      </div>
       <Button type="submit" size="lg" block iconRight={ArrowRight} className="mt-2">
         Continue
       </Button>
@@ -93,11 +130,12 @@ function DetailsStep({ onNext, initial }: { onNext: (v: { name: string; email: s
 
 type CamState = 'starting' | 'live' | 'denied' | 'captured'
 
-function CardStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }) {
+function CardStep({ onBack, onNext }: { onBack: () => void; onNext: (photoUrl: string) => Promise<void> }) {
   const [state, setState] = useState<CamState>('starting')
   const [photo, setPhoto] = useState<string | null>(null)
   const [fromUpload, setFromUpload] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -206,6 +244,12 @@ function CardStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
         </ul>
       )}
       {state === 'captured' && <p className="text-sm text-fg-muted">Check that the text is sharp and nothing is covered by glare.</p>}
+      {error && (
+        <div role="alert" className="flex items-start gap-2 rounded-lg border border-high/40 bg-high-soft p-3 text-sm text-high-fg">
+          <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>{error}</span>
+        </div>
+      )}
 
       <input
         ref={fileRef}
@@ -237,8 +281,13 @@ function CardStep({ onBack, onNext }: { onBack: () => void; onNext: () => void }
               loading={saving}
               loadingText="Uploading"
               onClick={() => {
+                if (!photo) return
                 setSaving(true)
-                setTimeout(onNext, 1100)
+                setError(null)
+                onNext(photo).catch((err: unknown) => {
+                  setSaving(false)
+                  setError(err instanceof Error ? err.message : 'Something went wrong. Try again.')
+                })
               }}
             >
               Use this photo
@@ -300,8 +349,35 @@ function DoneStep({ email }: { email: string }) {
 
 export function Signup() {
   const { navigate } = useApp()
+  const toast = useToast()
   const [step, setStep] = useState(0)
-  const [details, setDetails] = useState({ name: '', email: '' })
+  const [details, setDetails] = useState<Details>({ name: '', email: '', password: '' })
+
+  /** Creates the account, then stores the Ghana Card photo privately under the new user's folder. */
+  const createAccount = async (photoUrl: string) => {
+    if (!isSupabaseConfigured) {
+      await new Promise((r) => setTimeout(r, 1100))
+      setStep(2)
+      return
+    }
+    const { data, error } = await supabase.auth.signUp({ email: details.email, password: details.password, options: { data: { full_name: details.name } } })
+    if (error) throw new Error(/registered|exists/i.test(error.message) ? 'An account with this email already exists. Sign in instead.' : "We couldn't create your account. Check your connection and try again.")
+    // An obfuscated user (no identities) means the email is already taken.
+    if (data.user && data.user.identities?.length === 0) throw new Error('An account with this email already exists. Sign in instead.')
+    if (!data.session) {
+      toast({ tone: 'info', title: 'Confirm your email.', description: `We sent a link to ${details.email}. Sign in after confirming, then add your Ghana Card.` })
+      setStep(2)
+      return
+    }
+    try {
+      const blob = await (await fetch(photoUrl)).blob()
+      await uploadGhanaCard(blob, data.session.user.id)
+    } catch {
+      toast({ tone: 'error', title: "Your account is ready, but the Ghana Card photo didn't upload.", description: 'Try again from your account later.' })
+    }
+    setStep(2)
+  }
+
   return (
     <AuthLayout>
       <AuthCard>
@@ -329,7 +405,7 @@ export function Signup() {
         )}
         {step === 1 && (
           <div className="mt-6">
-            <CardStep onBack={() => setStep(0)} onNext={() => setStep(2)} />
+            <CardStep onBack={() => setStep(0)} onNext={createAccount} />
           </div>
         )}
         {step === 2 && (
