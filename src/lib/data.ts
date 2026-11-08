@@ -1,4 +1,4 @@
-import type { Detection, Report, Severity, Status } from './types'
+import type { Detection, Report, Role, Severity, Status, Category } from './types'
 
 const H = 3600_000
 const D = 24 * H
@@ -27,6 +27,7 @@ export const TEAMS = [
 interface Seed {
   title: string
   description: string
+  category: Category
   severity: Severity
   status: Status
   lat: number
@@ -45,6 +46,7 @@ const seeds: Seed[] = [
     title: 'Excavators dredging the Pra River bank',
     description:
       'Two excavators and a changfan dredge working on the east bank since early morning. Water downstream has turned brown. About 15 workers on site.',
+    category: 'galamsey',
     severity: 'high',
     status: 'investigating',
     lat: 5.612,
@@ -60,6 +62,7 @@ const seeds: Seed[] = [
     title: 'New pits dug beside Offin River',
     description:
       'Several fresh pits, roughly 4 m deep, opened along the river within the last week. Pumps running at night. Farmland on both sides is cleared.',
+    category: 'galamsey',
     severity: 'high',
     status: 'pending',
     lat: 5.962,
@@ -74,6 +77,7 @@ const seeds: Seed[] = [
     title: 'Mercury use reported near Birim tributary',
     description:
       'Residents report people washing gold with mercury near the footbridge. Children swim downstream. Smell of chemicals in the evening.',
+    category: 'water_pollution',
     severity: 'medium',
     status: 'investigating',
     lat: 6.168,
@@ -88,6 +92,7 @@ const seeds: Seed[] = [
     title: 'Mining camp inside Ankobra floodplain',
     description:
       'A camp with tents and generators has been set up on the floodplain. Heavy trucks moving in and out via the Prestea road.',
+    category: 'galamsey',
     severity: 'high',
     status: 'pending',
     lat: 5.432,
@@ -102,6 +107,7 @@ const seeds: Seed[] = [
     title: 'Abandoned pits left open',
     description:
       'Old pits left uncovered near the junction. They fill with water when it rains and are a drowning risk for children walking to school.',
+    category: 'galamsey',
     severity: 'medium',
     status: 'resolved',
     lat: 5.302,
@@ -115,6 +121,7 @@ const seeds: Seed[] = [
   {
     title: 'Small-scale panning at stream crossing',
     description: 'Three people panning at the stream crossing. No machinery seen.',
+    category: 'galamsey',
     severity: 'low',
     status: 'resolved',
     lat: 6.204,
@@ -128,6 +135,7 @@ const seeds: Seed[] = [
     title: 'Forest clearing in Atewa reserve',
     description:
       'Chainsaws heard and a cleared strip visible from the ridge path. Looks like preparation for a new site inside the reserve boundary.',
+    category: 'galamsey',
     severity: 'high',
     status: 'investigating',
     lat: 6.231,
@@ -142,6 +150,7 @@ const seeds: Seed[] = [
   {
     title: 'Washing plant discharging into stream',
     description: 'Muddy discharge pipe running from a washing plant straight into the stream behind the market.',
+    category: 'water_pollution',
     severity: 'medium',
     status: 'pending',
     lat: 6.042,
@@ -154,6 +163,7 @@ const seeds: Seed[] = [
   {
     title: 'Suspicious equipment on cocoa farm',
     description: 'A water pump and sluice box left on a cocoa farm. Owner says he did not give permission.',
+    category: 'galamsey',
     severity: 'low',
     status: 'pending',
     lat: 6.463,
@@ -166,6 +176,7 @@ const seeds: Seed[] = [
   {
     title: 'Dredging boats on the Offin',
     description: 'Four dredging boats operating in the main channel. River is visibly wider and shallower than last season.',
+    category: 'galamsey',
     severity: 'medium',
     status: 'pending',
     lat: 6.468,
@@ -178,6 +189,7 @@ const seeds: Seed[] = [
   {
     title: 'Land cleared next to school field',
     description: 'Topsoil removed on a plot next to the school field. Workers said they are testing for gold.',
+    category: 'galamsey',
     severity: 'low',
     status: 'investigating',
     lat: 5.792,
@@ -191,6 +203,7 @@ const seeds: Seed[] = [
   {
     title: 'Pits restored after enforcement',
     description: 'Site reported last month has been backfilled. Reporting so the record shows it was resolved.',
+    category: 'galamsey',
     severity: 'medium',
     status: 'resolved',
     lat: 5.568,
@@ -199,10 +212,12 @@ const seeds: Seed[] = [
     region: 'Western',
     ago: 18 * D,
     reporter: 'Nana Yeboah',
+    team: 'Minerals Commission Task Force, Western',
   },
   {
     title: 'Night activity at river bend',
     description: 'Lights and engine noise at the river bend every night this week, from about 10 pm.',
+    category: 'galamsey',
     severity: 'low',
     status: 'pending',
     lat: 6.617,
@@ -216,6 +231,7 @@ const seeds: Seed[] = [
     title: 'Large excavation near Tano River',
     description:
       'A large open pit with three excavators. Water is being pumped into the Tano River. The site was not here two weeks ago.',
+    category: 'galamsey',
     severity: 'high',
     status: 'pending',
     lat: 5.812,
@@ -244,6 +260,7 @@ export const INITIAL_REPORTS: Report[] = seeds.map((s, i) => {
     id,
     title: s.title,
     description: s.description,
+    category: s.category,
     severity: s.severity,
     status: s.status,
     lat: s.lat,
@@ -275,12 +292,12 @@ function blob(lat: number, lng: number, rLat: number, rLng: number, seed: number
 }
 
 export const DETECTIONS: Detection[] = [
-  { id: 'S2-0912', name: 'Pra River corridor', detectedAt: now - 3 * D, confidence: 0.91, areaHa: 182.4, points: blob(5.7, -1.5, 0.13, 0.05, 1, 0.6) },
-  { id: 'S2-0907', name: 'Offin River, Dunkwa', detectedAt: now - 5 * D, confidence: 0.88, areaHa: 146.1, points: blob(6.06, -1.76, 0.14, 0.045, 2, 0.3) },
-  { id: 'S2-0899', name: 'Ankobra floodplain', detectedAt: now - 8 * D, confidence: 0.84, areaHa: 97.8, points: blob(5.5, -2.2, 0.11, 0.045, 3, -0.4) },
-  { id: 'S2-0894', name: 'Birim basin, Kyebi', detectedAt: now - 9 * D, confidence: 0.79, areaHa: 64.3, points: blob(6.08, -0.66, 0.08, 0.06, 4, 0.9) },
-  { id: 'S2-0881', name: 'Tano River, Asankragwa', detectedAt: now - 12 * D, confidence: 0.86, areaHa: 121.7, points: blob(5.92, -2.38, 0.12, 0.05, 5, -0.2) },
-  { id: 'S2-0876', name: 'Amansie West', detectedAt: now - 14 * D, confidence: 0.73, areaHa: 58.9, points: blob(6.36, -1.95, 0.07, 0.06, 6, 0.1) },
+  { id: 'S2-0912', name: 'Pra River corridor', detectedAt: now - 3 * D, confidence: 0.91, areaHa: 182.4, points: blob(5.7, -1.5, 0.13, 0.05, 1, 0.6), status: 'pending_review' },
+  { id: 'S2-0907', name: 'Offin River, Dunkwa', detectedAt: now - 5 * D, confidence: 0.88, areaHa: 146.1, points: blob(6.06, -1.76, 0.14, 0.045, 2, 0.3), status: 'pending_review' },
+  { id: 'S2-0899', name: 'Ankobra floodplain', detectedAt: now - 8 * D, confidence: 0.84, areaHa: 97.8, points: blob(5.5, -2.2, 0.11, 0.045, 3, -0.4), status: 'pending_review' },
+  { id: 'S2-0894', name: 'Birim basin, Kyebi', detectedAt: now - 9 * D, confidence: 0.79, areaHa: 64.3, points: blob(6.08, -0.66, 0.08, 0.06, 4, 0.9), status: 'pending_review' },
+  { id: 'S2-0881', name: 'Tano River, Asankragwa', detectedAt: now - 12 * D, confidence: 0.86, areaHa: 121.7, points: blob(5.92, -2.38, 0.12, 0.05, 5, -0.2), status: 'pending_review' },
+  { id: 'S2-0876', name: 'Amansie West', detectedAt: now - 14 * D, confidence: 0.73, areaHa: 58.9, points: blob(6.36, -1.95, 0.07, 0.06, 6, 0.1), status: 'pending_review' },
 ]
 
 export const DEFAULT_LOCATION = { lat: 6.1652, lng: -0.5518, place: 'Kyebi, Eastern Region' }

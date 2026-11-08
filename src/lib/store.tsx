@@ -3,6 +3,7 @@ import { DETECTIONS, INITIAL_REPORTS } from './data'
 import type { Detection, Report, Role, Status } from './types'
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { fetchDetections, fetchEvents, fetchProfile, fetchReports, insertReport, setComplaintStatus, setComplaintTeam, toReport } from './api'
+import { createDispatchAlerts } from './dispatch'
 
 export type Route =
   | { name: 'library' }
@@ -51,7 +52,7 @@ interface AppState {
   reports: Report[]
   detections: Detection[]
   /** Rejects if the backend refuses the write. */
-  addReport: (r: Report, photoFiles?: File[]) => Promise<void>
+  addReport: (r: Report, photoFiles?: File[], voiceNote?: Blob) => Promise<void>
   updateStatus: (id: string, status: Status) => Promise<void>
   assignTeam: (id: string, team: string) => Promise<void>
   signOut: () => Promise<void>
@@ -201,16 +202,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const addReport = useCallback(
-    async (r: Report, photoFiles: File[] = []) => {
+    async (r: Report, photoFiles: File[] = [], voiceNote?: Blob) => {
       if (!isSupabaseConfigured) {
         setReports((prev) => (prev.some((p) => p.id === r.id) ? prev : [r, ...prev]))
         return
       }
       if (!session) throw new Error('Sign in to send a report.')
-      const photos = await insertReport(r, photoFiles, session.id)
-      const saved = { ...r, photos }
+      const { photos, voiceUrl } = await insertReport(r, photoFiles, session.id, voiceNote)
+      const saved = { ...r, photos, voiceNote: voiceUrl ?? undefined }
       // Realtime also delivers this row; the id check keeps it from doubling.
       setReports((prev) => (prev.some((p) => p.id === saved.id) ? prev : [saved, ...prev]))
+
+      // Fire-and-forget: create dispatch alerts for the new report
+      void createDispatchAlerts(saved).catch((e) => console.warn('dispatch failed', e))
     },
     [session],
   )

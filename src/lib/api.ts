@@ -1,4 +1,4 @@
-import type { Detection, Report, Role, Severity, Status, TimelineEvent } from './types'
+import type { Detection, Report, Role, Severity, Status, TimelineEvent, Category, DetectionStatus } from './types'
 import { supabase } from './supabaseClient'
 
 interface ComplaintRow {
@@ -13,6 +13,8 @@ interface ComplaintRow {
   place: string
   region: string
   photos: string[] | null
+  voice_note: string | null
+  category: string | null
   reporter_name: string | null
   is_anonymous: boolean
   assigned_team: string | null
@@ -43,6 +45,7 @@ export function toReport(c: ComplaintRow, events: EventRow[] = []): Report {
     id: c.id,
     title: c.title,
     description: c.description ?? '',
+    category: (c.category as Category) ?? 'other',
     severity: c.severity,
     status: c.status,
     lat: c.latitude,
@@ -51,6 +54,7 @@ export function toReport(c: ComplaintRow, events: EventRow[] = []): Report {
     region: c.region,
     createdAt,
     photos: c.photos ?? [],
+    voiceNote: c.voice_note ?? undefined,
     reporter: { name, anonymous: c.is_anonymous },
     assignedTeam: c.assigned_team ?? undefined,
     timeline: timeline.length ? timeline : [{ id: `${c.id}-t0`, at: createdAt, label: 'Report submitted', by: name, status: 'pending' }],
@@ -90,6 +94,7 @@ export async function fetchDetections(): Promise<Detection[]> {
     confidence: d.confidence,
     areaHa: d.area_ha,
     points: d.points as [number, number][],
+    status: d.status ?? 'pending_review',
   }))
 }
 
@@ -105,8 +110,16 @@ export async function uploadReportPhotos(files: File[], userId: string): Promise
   return urls
 }
 
-export async function insertReport(r: Report, files: File[], userId: string) {
+export async function uploadVoiceNote(blob: Blob, userId: string): Promise<string> {
+  const path = `${userId}/voice-${crypto.randomUUID()}.webm`
+  const { error } = await supabase.storage.from('report-photos').upload(path, blob, { contentType: 'audio/webm' })
+  if (error) throw error
+  return supabase.storage.from('report-photos').getPublicUrl(path).data.publicUrl
+}
+
+export async function insertReport(r: Report, files: File[], userId: string, voiceNote?: Blob) {
   const photos = files.length ? await uploadReportPhotos(files, userId) : []
+  const voiceUrl = voiceNote ? await uploadVoiceNote(voiceNote, userId) : null
   const { error } = await supabase.from('complaints').insert({
     id: r.id,
     title: r.title,
@@ -114,15 +127,17 @@ export async function insertReport(r: Report, files: File[], userId: string) {
     latitude: r.lat,
     longitude: r.lng,
     severity: r.severity,
+    category: r.category,
     place: r.place,
     region: r.region,
     photos,
+    voice_note: voiceUrl,
     is_anonymous: r.reporter.anonymous,
     reporter_name: r.reporter.anonymous ? null : r.reporter.name,
     reporter_id: r.reporter.anonymous ? null : userId,
   })
   if (error) throw error
-  return photos
+  return { photos, voiceUrl }
 }
 
 export async function setComplaintStatus(id: string, status: Status) {
@@ -133,6 +148,48 @@ export async function setComplaintStatus(id: string, status: Status) {
 export async function setComplaintTeam(id: string, team: string) {
   const { error } = await supabase.from('complaints').update({ assigned_team: team }).eq('id', id)
   if (error) throw error
+}
+
+export async function setDetectionStatus(id: string, status: DetectionStatus) {
+  const { error } = await supabase.from('detections').update({ status }).eq('id', id)
+  if (error) throw error
+}
+
+/** Create a complaint from a confirmed detection (regulator workflow) */
+export async function createComplaintFromDetection(detectionId: string, userId: string): Promise<Report> {
+  const { data: det, error } = await supabase.from('detections').select('*').eq('id', detectionId).maybeSingle()
+  if (error) throw error
+  if (!det) throw new Error('Detection not found')
+
+  const reportId = newReportId()
+  const now = new Date().toISOString()
+
+  const { error: insErr } = await supabase.from('complaints').insert({
+    id: reportId,
+    title: `Satellite detection: ${det.name}`,
+    description: `Auto-generated from Sentinel-2 detection (${Math.round(det.confidence * 100)}% confidence, ${det.area_ha} ha). Requires ground verification.`,
+    latitude: det.points[0]?.[0] ?? 0,
+    longitude: det.points[0]?.[1] ?? 0,
+    severity: det.confidence > 0.85 ? 'high' : det.confidence > 0.7 ? 'medium' : 'low',
+    category: 'galamsey',
+    place: det.name,
+    region: 'Unknown',
+    photos: [],
+    is_anonymous: false,
+    reporter_name: 'Satellite Monitor',
+    reporter_id: userId,
+    status: 'pending',
+  })
+  if (insErr) throw insErr
+
+  // Link detection to complaint
+  const { error: linkErr } = await supabase.from('detections').update({ status: 'confirmed', complaint_id: reportId }).eq('id', detectionId)
+  if (linkErr) throw linkErr
+
+  const complaints = await fetchReports()
+  const report = complaints.find((r) => r.id === reportId)
+  if (!report) throw new Error('Failed to fetch created report')
+  return report
 }
 
 export async function fetchProfile(userId: string): Promise<{ name: string; email: string; role: Role } | null> {

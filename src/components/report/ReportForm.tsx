@@ -1,24 +1,25 @@
-import { useEffect, useRef, useState } from 'react'
-import { CircleCheck, ImagePlus, MapPin, RotateCcw, Send, CloudOff, X, Map as MapIcon, PenLine } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { CircleCheck, ImagePlus, MapPin, RotateCcw, Send, CloudOff, X, Map as MapIcon, PenLine, Mic, MicOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { FieldError, Hint, Input, Label, Textarea } from '@/components/ui/Field'
+import { FieldError, Hint, Input, Label, Textarea, Select } from '@/components/ui/Field'
 import { SeverityChip, StatusChip } from '@/components/ui/Chips'
 import { useToast } from '@/components/ui/Toast'
 import { SEVERITY, cx, formatCoords } from '@/lib/meta'
 import { newReportId } from '@/lib/api'
 import { useApp } from '@/lib/store'
-import type { Report, Severity } from '@/lib/types'
+import type { Report, Severity, Category } from '@/lib/types'
 import { SeverityPicker } from './SeverityPicker'
 
-type Field = 'title' | 'description' | 'severity'
+type Field = 'title' | 'description' | 'category' | 'severity'
 type Errors = Partial<Record<Field, string>>
 
-function validate(v: { title: string; description: string; severity: Severity | null }): Errors {
+function validate(v: { title: string; description: string; category: Category | null; severity: Severity | null }): Errors {
   const e: Errors = {}
   if (!v.title.trim()) e.title = 'Add a short title, like "Excavators on the Pra River".'
   else if (v.title.trim().length < 5) e.title = 'Use at least 5 characters so regulators can scan it.'
   if (!v.description.trim()) e.description = 'Describe what you saw: machines, people, water colour.'
   else if (v.description.trim().length < 20) e.description = `Add a little more detail. ${20 - v.description.trim().length} more characters.`
+  if (!v.category) e.category = 'Choose what kind of issue this is.'
   if (!v.severity) e.severity = 'Choose how urgent this is.'
   return e
 }
@@ -52,7 +53,14 @@ export function ReportForm({
   const [description, setDescription] = useState('')
   const [severity, setSeverity] = useState<Severity | null>(null)
   const [anonymous, setAnonymous] = useState(false)
-  const [photos, setPhotos] = useState<{ url: string; name: string; file: File }[]>([])
+  const [photos, setPhotos] = useState<{ url: string; name: string; file: File; source: 'camera' }[]>([])
+  const [voiceNote, setVoiceNote] = useState<{ blob: Blob; url: string; duration: number } | null>(null)
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const chunksRef = useRef<Blob[]>([])
+  const timerRef = useRef<number | null>(null)
+  const [category, setCategory] = useState<Category | null>(null)
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({})
   const [submitting, setSubmitting] = useState(false)
   const [failed, setFailed] = useState(false)
@@ -60,10 +68,11 @@ export function ReportForm({
   const fileRef = useRef<HTMLInputElement>(null)
   const descRef = useRef<HTMLTextAreaElement>(null)
   const sevRef = useRef<HTMLDivElement>(null)
+  const catRef = useRef<HTMLDivElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
   const successRef = useRef<HTMLHeadingElement>(null)
 
-  const errors = validate({ title, description, severity })
+  const errors = validate({ title, description, category, severity })
   const show = (f: Field) => (touched[f] ? errors[f] : undefined)
   const blur = (f: Field) => setTouched((t) => ({ ...t, [f]: true }))
 
@@ -74,19 +83,74 @@ export function ReportForm({
   const reset = () => {
     setTitle('')
     setDescription('')
+    setCategory(null)
     setSeverity(null)
     setAnonymous(false)
     setPhotos([])
+    setVoiceNote(null)
     setTouched({})
     setFailed(false)
     setSent(null)
     setTimeout(() => titleRef?.current?.focus(), 0)
   }
 
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop()
+    }
+    if (timerRef.current) {
+      clearInterval(timerRef.current)
+      timerRef.current = null
+    }
+    setIsRecording(false)
+  }, [isRecording])
+
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } })
+      chunksRef.current = []
+      const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm;codecs=opus' })
+      mediaRecorderRef.current = recorder
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data)
+      }
+
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm;codecs=opus' })
+        const url = URL.createObjectURL(blob)
+        setVoiceNote({ blob, url, duration: recordingTime })
+        stream.getTracks().forEach((t) => t.stop())
+      }
+
+      recorder.start(100)
+      setIsRecording(true)
+      setRecordingTime(0)
+      timerRef.current = window.setInterval(() => setRecordingTime((t) => t + 1), 1000)
+    } catch {
+      toast({ tone: 'error', title: "Couldn't access microphone", description: 'Check permissions and try again.' })
+    }
+  }, [recordingTime, toast])
+
+  const playVoiceNote = () => {
+    if (voiceNote) {
+      const audio = new Audio(voiceNote.url)
+      audio.play()
+    }
+  }
+
+  const removeVoiceNote = () => {
+    if (voiceNote) URL.revokeObjectURL(voiceNote.url)
+    setVoiceNote(null)
+  }
+
+  const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
+
   const submit = () => {
-    setTouched({ title: true, description: true, severity: true })
+    setTouched({ title: true, description: true, category: true, severity: true })
     if (errors.title) return titleRef?.current?.focus()
     if (errors.description) return descRef.current?.focus()
+    if (errors.category) return (catRef.current?.querySelector('[tabindex="0"]') as HTMLElement | null)?.focus()
     if (errors.severity) return (sevRef.current?.querySelector('[tabindex="0"]') as HTMLElement | null)?.focus()
     setSubmitting(true)
     setFailed(false)
@@ -103,6 +167,7 @@ export function ReportForm({
         id,
         title: title.trim(),
         description: description.trim(),
+        category: category!,
         severity: severity!,
         status: 'pending',
         lat: location.lat,
@@ -115,7 +180,7 @@ export function ReportForm({
         timeline: [{ id: `${id}-t0`, at: now, label: 'Report submitted', by: anonymous ? 'Anonymous' : user.name, status: 'pending' }],
       }
       try {
-        await addReport(report, photos.map((p) => p.file))
+        await addReport(report, photos.map((p) => p.file), voiceNote?.blob)
       } catch {
         return showFailure()
       }
@@ -239,6 +304,33 @@ export function ReportForm({
         {show('description') ? <FieldError id="r-desc-err">{show('description')}</FieldError> : <Hint id="r-desc-hint">What, how many people or machines, and since when.</Hint>}
       </div>
 
+      <div className="flex flex-col gap-1.5" ref={catRef}>
+        <span id="r-cat-label" className="text-sm font-medium text-fg">
+          Category
+        </span>
+        <Select
+          id="r-cat"
+          aria-describedBy={show('category') ? 'r-cat-err' : 'r-cat-hint'}
+          value={category ?? ''}
+          onChange={(e) => setCategory((e.target.value as Category) || null)}
+          onBlur={() => blur('category')}
+          invalid={!!show('category')}
+        >
+          <option value="">Select issue type</option>
+          <option value="galamsey">Illegal mining (Galamsey)</option>
+          <option value="water_pollution">Water pollution</option>
+          <option value="medical">Medical emergency</option>
+          <option value="fire">Fire</option>
+          <option value="security">Security / Crime</option>
+          <option value="other">Other</option>
+        </Select>
+        {show('category') ? (
+          <FieldError id="r-cat-err">{show('category')}</FieldError>
+        ) : (
+          <Hint id="r-cat-hint">What kind of issue are you reporting?</Hint>
+        )}
+      </div>
+
       <div className="flex flex-col gap-1.5" ref={sevRef}>
         <span id="r-sev-label" className="text-sm font-medium text-fg">
           Severity
@@ -286,12 +378,13 @@ export function ReportForm({
           id="r-photo"
           type="file"
           accept="image/*"
+          capture="environment"
           multiple
           className="sr-only"
           aria-describedby="r-photo-hint"
           onChange={(e) => {
             const files = Array.from(e.target.files ?? []).slice(0, 4 - photos.length)
-            setPhotos((p) => [...p, ...files.map((f) => ({ url: URL.createObjectURL(f), name: f.name, file: f }))])
+            setPhotos((p) => [...p, ...files.map((f) => ({ url: URL.createObjectURL(f), name: f.name, file: f, source: 'camera' as const }))])
             e.target.value = ''
           }}
         />
@@ -324,6 +417,43 @@ export function ReportForm({
           )}
         </div>
         <Hint id="r-photo-hint">Up to 4 photos. Only take photos if it is safe.</Hint>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="r-voice" optional>
+          Voice note
+        </Label>
+        {isRecording ? (
+          <div className="flex items-center gap-3 rounded-lg border border-brand bg-brand-soft p-3">
+            <Loader2 className="size-5 animate-spin text-brand" aria-hidden />
+            <span className="flex-1">
+              <p className="text-sm font-medium text-fg">Recording…</p>
+              <p className="text-xs text-fg-muted tabular">{formatTime(recordingTime)}</p>
+            </span>
+            <Button size="sm" variant="alert" icon={MicOff} onClick={stopRecording}>
+              Stop
+            </Button>
+          </div>
+        ) : voiceNote ? (
+          <div className="flex items-center gap-3 rounded-lg border bg-surface-2 p-3">
+            <Mic className="size-5 text-brand-soft-fg" aria-hidden />
+            <span className="flex-1">
+              <p className="text-sm font-medium text-fg">Voice note attached</p>
+              <p className="text-xs text-fg-muted tabular">{formatTime(voiceNote.duration)}</p>
+            </span>
+            <Button size="sm" variant="secondary" icon={Mic} onClick={playVoiceNote}>
+              Play
+            </Button>
+            <Button size="sm" variant="ghost" icon={X} onClick={removeVoiceNote} className="ml-auto">
+              Remove
+            </Button>
+          </div>
+        ) : (
+          <Button size="sm" variant="secondary" icon={Mic} onClick={startRecording} className="w-full justify-center">
+            Record voice note
+          </Button>
+        )}
+        <Hint id="r-voice-hint">Record a short message instead of typing. Up to 2 minutes.</Hint>
       </div>
 
       <label className="flex min-h-11 cursor-pointer items-start gap-3">
