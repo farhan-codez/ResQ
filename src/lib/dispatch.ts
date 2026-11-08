@@ -59,6 +59,23 @@ export async function updateAlertStatus(alertId: string, status: DispatchAlert['
 }
 
 /** Fetch alerts for a report (regulator view) */
+export async function fetchAllDispatchAlerts(): Promise<DispatchAlert[]> {
+  const { data, error } = await supabase
+    .from('dispatch_alerts')
+    .select('*, authorities(*)')
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return (data ?? []).map((row: any) => ({
+    id: row.id,
+    reportId: row.report_id,
+    authorityId: row.authority_id,
+    createdAt: new Date(row.created_at).getTime(),
+    status: row.status,
+    notes: row.notes,
+  }))
+}
+
 export async function fetchAlertsForReport(reportId: string): Promise<DispatchAlert[]> {
   const { data, error } = await supabase
     .from('dispatch_alerts')

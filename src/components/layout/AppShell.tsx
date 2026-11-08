@@ -1,12 +1,13 @@
 import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react'
-import { Bell, LayoutGrid, List, LogOut, Map as MapIcon, Moon, Search, Siren, Sun, User, X } from 'lucide-react'
+import { Bell, LayoutGrid, List, LogOut, Map as MapIcon, Moon, Search, Siren, Sun, User, X, AlertTriangle } from 'lucide-react'
 import { Button, IconButton } from '@/components/ui/Button'
 import { Logo } from '@/components/ui/Logo'
 import { SeverityChip } from '@/components/ui/Chips'
 import { SEVERITY, cx, timeAgo } from '@/lib/meta'
 import { useApp } from '@/lib/store'
 import { useDismiss } from '@/lib/useDismiss'
-import type { Report } from '@/lib/types'
+import { useToast } from '@/components/ui/Toast'
+import type { Report, DispatchAlert } from '@/lib/types'
 
 type Active = 'map' | 'reports'
 
@@ -86,7 +87,7 @@ function SearchBox({ onDone, autoFocus }: { onDone?: () => void; autoFocus?: boo
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-fg">{r.title}</p>
                     <p className="text-xs text-fg-muted">
-                      {r.place}, {r.region} · {r.id}
+                      {r.place}, {r.region} &middot; {r.id}
                     </p>
                   </div>
                   <SeverityChip severity={r.severity} />
@@ -101,13 +102,31 @@ function SearchBox({ onDone, autoFocus }: { onDone?: () => void; autoFocus?: boo
 }
 
 function Notifications() {
-  const { reports, navigate } = useApp()
+  const { reports, dispatchAlerts, role, navigate, updateDispatchStatus } = useApp()
+  const toast = useToast()
   const [open, setOpen] = useState(false)
   const [read, setRead] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useDismiss(ref, open, () => setOpen(false))
-  const items = reports.slice(0, 4)
-  const unread = read ? 0 : Math.min(3, items.length)
+
+  useEffect(() => {
+    const handler = (e: CustomEvent<DispatchAlert>) => {
+      const alert = e.detail
+      toast({
+        tone: 'info',
+        title: 'New dispatch alert',
+        description: `${alert.status === 'dispatched' ? 'Dispatched' : 'Updated'} to ${alert.authorityId}`,
+        action: { label: 'View', onClick: () => navigate({ name: 'dispatch', alertId: alert.id }) },
+      })
+    }
+    window.addEventListener('resq:new-dispatch', handler as EventListener)
+    return () => window.removeEventListener('resq:new-dispatch', handler as EventListener)
+  }, [toast, navigate])
+
+  const isRegulator = role === 'regulator'
+  const items = isRegulator ? dispatchAlerts.slice(0, 5) : reports.slice(0, 4)
+  const unread = read ? 0 : items.filter((_, i) => i < 3).length
+
   return (
     <div ref={ref} className="relative">
       <span className="relative inline-flex">
@@ -121,40 +140,89 @@ function Notifications() {
       {open && (
         <div className="animate-fade fixed inset-x-3 top-16 z-[1100] overflow-hidden rounded-lg border border-border bg-surface shadow-overlay md:absolute md:inset-x-auto md:top-full md:right-0 md:mt-2 md:w-96">
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <p className="text-sm font-semibold text-fg">Notifications</p>
+            <p className="text-sm font-semibold text-fg">{isRegulator ? 'Dispatch Alerts' : 'Notifications'}</p>
             <Button variant="link" size="sm" onClick={() => setRead(true)} disabled={unread === 0}>
               Mark all as read
             </Button>
           </div>
           {items.length === 0 ? (
-            <p className="px-4 py-6 text-center text-sm text-fg-muted">You're all caught up. New reports near you show up here.</p>
+            <p className="px-4 py-6 text-center text-sm text-fg-muted">{isRegulator ? 'No dispatch alerts yet. New alerts appear here.' : "You're all caught up. New reports near you show up here."}</p>
           ) : (
             <ul className="max-h-96 overflow-auto">
-              {items.map((r, i) => {
-                const Icon = SEVERITY[r.severity].icon
-                return (
-                  <li key={r.id}>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpen(false)
-                        navigate({ name: 'dashboard', focus: r.id })
-                      }}
-                      className="flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left hover:bg-surface-2"
-                    >
-                      <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ background: `var(--${r.severity}-soft)`, color: `var(--${r.severity}-fg)` }}>
-                        <Icon className="size-4" aria-hidden />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-sm text-fg">
-                          <span className="font-medium">New {SEVERITY[r.severity].label.toLowerCase()} severity report</span> near {r.place}
+              {items.map((item, i) => {
+                if (isRegulator) {
+                  const alert = item as DispatchAlert
+                  return (
+                    <li key={alert.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpen(false)
+                          navigate({ name: 'dispatch', alertId: alert.id })
+                        }}
+                        className="flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left hover:bg-surface-2"
+                      >
+                        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg bg-alert-soft text-alert-fg">
+                          <AlertTriangle className="size-4" aria-hidden />
                         </span>
-                        <span className="block text-xs text-fg-muted">{timeAgo(r.createdAt)}</span>
-                      </span>
-                      {!read && i < 3 && <span className="mt-2 size-2 shrink-0 rounded-full bg-alert" aria-label="Unread" />}
-                    </button>
-                  </li>
-                )
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm text-fg">
+                            <span className="font-medium">Dispatch {alert.status}</span> &mdash; {alert.authorityId}
+                          </span>
+                          <span className="block text-xs text-fg-muted">{timeAgo(alert.createdAt)}</span>
+                        </span>
+                        <span className="flex gap-1">
+                          {alert.status === 'dispatched' && (
+                            <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); updateDispatchStatus(alert.id, 'acknowledged') }}>
+                              Acknowledge
+                            </Button>
+                          )}
+                          {alert.status === 'acknowledged' && (
+                            <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); updateDispatchStatus(alert.id, 'en_route') }}>
+                              En route
+                            </Button>
+                          )}
+                          {alert.status === 'en_route' && (
+                            <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); updateDispatchStatus(alert.id, 'on_scene') }}>
+                              On scene
+                            </Button>
+                          )}
+                          {alert.status === 'on_scene' && (
+                            <Button size="sm" variant="secondary" onClick={(e) => { e.stopPropagation(); updateDispatchStatus(alert.id, 'closed') }}>
+                              Close
+                            </Button>
+                          )}
+                        </span>
+                      </button>
+                    </li>
+                  )
+                } else {
+                  const r = item as Report
+                  const Icon = SEVERITY[r.severity].icon
+                  return (
+                    <li key={r.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOpen(false)
+                          navigate({ name: 'dashboard', focus: r.id })
+                        }}
+                        className="flex w-full cursor-pointer items-start gap-3 px-4 py-3 text-left hover:bg-surface-2"
+                      >
+                        <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg" style={{ background: `var(--${r.severity}-soft)`, color: `var(--${r.severity}-fg)` }}>
+                          <Icon className="size-4" aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-sm text-fg">
+                            <span className="font-medium">New {SEVERITY[r.severity].label.toLowerCase()} severity report</span> near {r.place}
+                          </span>
+                          <span className="block text-xs text-fg-muted">{timeAgo(r.createdAt)}</span>
+                        </span>
+                        {!read && i < 3 && <span className="mt-2 size-2 shrink-0 rounded-full bg-alert" aria-label="Unread" />}
+                      </button>
+                    </li>
+                  )
+                }
               })}
             </ul>
           )}
@@ -305,7 +373,6 @@ export function AppShell({ active, children, onReport }: { active: Active; child
   const [accountOpen, setAccountOpen] = useState(false)
   const isRegulator = role === 'regulator'
 
-  // Citizens get Map / Report / Account. Regulators get the triage workspace.
   const tabs = [
     { key: 'map', label: 'Map', icon: MapIcon, onClick: () => navigate({ name: 'dashboard' }), current: active === 'map' },
     ...(isRegulator ? [{ key: 'reports', label: 'Reports', icon: List, onClick: () => navigate({ name: 'reports' }), current: active === 'reports' }] : [{ key: 'report', label: 'Report', icon: Siren, onClick: onReport, current: false, alert: true }]),
@@ -321,7 +388,7 @@ export function AppShell({ active, children, onReport }: { active: Active; child
         <button type="button" onClick={() => navigate({ name: 'dashboard' })} className="cursor-pointer rounded-lg" aria-label="ResQ home">
           <Logo onDark />
         </button>
-        {role === 'regulator' && (
+        {isRegulator && (
           <nav aria-label="Primary" className="ml-2 hidden items-center gap-1 md:flex">
             {[
               { k: 'map' as const, label: 'Live map', icon: MapIcon, r: { name: 'dashboard' as const } },

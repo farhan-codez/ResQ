@@ -1,6 +1,8 @@
 import { ToastProvider } from '@/components/ui/Toast'
 import { AppProvider, useApp } from '@/lib/store'
 import { Dashboard } from '@/screens/Dashboard'
+import { DispatchList } from '@/screens/Dispatch'
+import { GuestAuth } from '@/screens/GuestAuth'
 import { Library } from '@/screens/Library'
 import { Login } from '@/screens/Login'
 import { ReportsList } from '@/screens/ReportsList'
@@ -15,10 +17,15 @@ function Screen() {
       return import.meta.env.DEV ? <Library /> : <Login />
     case 'signup':
       return <Signup />
+    case 'guest':
+      return <GuestAuth />
     case 'dashboard':
       return <Dashboard />
     case 'reports':
       return <ReportsList />
+    case 'dispatch':
+      const { role, navigate } = useApp()
+      return role === 'regulator' ? <DispatchList onClose={() => navigate({ name: 'reports' })} /> : <Login />
     default:
       return <Login />
   }

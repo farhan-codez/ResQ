@@ -1,16 +1,18 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { DETECTIONS, INITIAL_REPORTS } from './data'
-import type { Detection, Report, Role, Status } from './types'
+import type { Detection, DispatchAlert, Report, Role, Status } from './types'
 import { supabase, isSupabaseConfigured } from './supabaseClient'
 import { fetchDetections, fetchEvents, fetchProfile, fetchReports, insertReport, setComplaintStatus, setComplaintTeam, toReport } from './api'
-import { createDispatchAlerts } from './dispatch'
+import { createDispatchAlerts, fetchAlertsForReport, fetchAllDispatchAlerts } from './dispatch'
 
 export type Route =
   | { name: 'library' }
   | { name: 'login' }
   | { name: 'signup' }
+  | { name: 'guest' }
   | { name: 'dashboard'; incident?: string; focus?: string }
   | { name: 'reports'; incident?: string }
+  | { name: 'dispatch'; alertId?: string }
 
 function parseHash(hash: string): Route {
   const [path, query = ''] = hash.replace(/^#\/?/, '').split('?')
@@ -23,6 +25,8 @@ function parseHash(hash: string): Route {
       return { name: 'login' }
     case 'signup':
       return { name: 'signup' }
+    case 'guest':
+      return { name: 'guest' }
     case 'reports':
       return { name: 'reports', incident: params.get('incident') ?? undefined }
     case 'dashboard':
@@ -36,6 +40,7 @@ export function routeToHash(r: Route) {
   const q = new URLSearchParams()
   if ('incident' in r && r.incident) q.set('incident', r.incident)
   if ('focus' in r && r.focus) q.set('focus', r.focus)
+  if ('alertId' in r && r.alertId) q.set('alertId', r.alertId)
   const qs = q.toString()
   return `#/${r.name}${qs ? `?${qs}` : ''}`
 }
@@ -51,10 +56,12 @@ interface AppState {
   setRole: (r: Role) => void
   reports: Report[]
   detections: Detection[]
+  dispatchAlerts: DispatchAlert[]
   /** Rejects if the backend refuses the write. */
   addReport: (r: Report, photoFiles?: File[], voiceNote?: Blob) => Promise<void>
   updateStatus: (id: string, status: Status) => Promise<void>
   assignTeam: (id: string, team: string) => Promise<void>
+  updateDispatchStatus: (id: string, status: DispatchAlert['status']) => Promise<void>
   signOut: () => Promise<void>
   authReady: boolean
   signedIn: boolean
@@ -78,9 +85,15 @@ function stored<T extends string>(key: string, fallback: T): T {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash))
   const [theme, setThemeState] = useState<Theme>(() => stored<Theme>('theme', 'light'))
-  const [role, setRoleState] = useState<Role>(() => stored<Role>('role', 'citizen'))
+  const [role, setRoleState] = useState<Role>(() => {
+    // Check for existing guest session
+    const guestId = localStorage.getItem('resq.guest.current')
+    if (guestId) return 'guest'
+    return stored<Role>('role', 'citizen')
+  })
   const [reports, setReports] = useState<Report[]>(isSupabaseConfigured ? [] : INITIAL_REPORTS)
   const [detections, setDetections] = useState<Detection[]>(isSupabaseConfigured ? [] : DETECTIONS)
+  const [dispatchAlerts, setDispatchAlerts] = useState<DispatchAlert[]>(isSupabaseConfigured ? [] : [])
   const [session, setSession] = useState<{ id: string; email: string; name: string } | null>(null)
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured)
 
@@ -95,12 +108,38 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [theme])
 
   // Auth session (Supabase). Demo mode skips this and keeps the original simulated sign-in.
+  // Also checks for guest session from localStorage.
   useEffect(() => {
-    if (!isSupabaseConfigured) return
+    if (!isSupabaseConfigured) {
+      // Demo mode: check for guest session
+      const guestId = localStorage.getItem('resq.guest.current')
+      if (guestId) {
+        const guestData = localStorage.getItem(`resq.guest.${guestId}`)
+        if (guestData) {
+          const { faceDescriptor, createdAt } = JSON.parse(guestData)
+          setSession({ id: guestId, email: '', name: `Guest ${guestId.slice(-4)}` })
+          setRoleState('guest')
+        }
+      }
+      setAuthReady(true)
+      return
+    }
     let cancelled = false
     const apply = async (s: { user: { id: string; email?: string; user_metadata?: Record<string, any> } } | null) => {
       if (cancelled) return
       if (!s) {
+        // No Supabase session - check for guest
+        const guestId = localStorage.getItem('resq.guest.current')
+        if (guestId) {
+          const guestData = localStorage.getItem(`resq.guest.${guestId}`)
+          if (guestData) {
+            const { faceDescriptor, createdAt } = JSON.parse(guestData)
+            setSession({ id: guestId, email: '', name: `Guest ${guestId.slice(-4)}` })
+            setRoleState('guest')
+            setAuthReady(true)
+            return
+          }
+        }
         setSession(null)
         setRoleState('citizen')
         setAuthReady(true)
@@ -129,6 +168,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Route guard: reports and map need a signed-in user. Signed-in users skip the login screen.
   // The regulator workspace is for regulator accounts only.
+  // Guests can access dashboard (map + report) but not reports list.
   useEffect(() => {
     if (!isSupabaseConfigured || !authReady) return
     if (!session && (route.name === 'dashboard' || route.name === 'reports')) navigate({ name: 'login' })
@@ -137,9 +177,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [authReady, session, route, role]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Complaints + detections: load and stay live (signed-in only, so RLS-visible rows match the session).
+  // Guests also get reports in demo mode.
   const userId = session?.id
+  const isGuest = role === 'guest'
   useEffect(() => {
-    if (!isSupabaseConfigured || !userId) return
+    if (!isSupabaseConfigured && !isGuest) return
+    if (isSupabaseConfigured && !userId && !isGuest) return
     let cancelled = false
     const guard = <T,>(fn: (v: T) => void) => (v: T) => {
       if (!cancelled) fn(v)
@@ -181,6 +224,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
       supabase.removeChannel(channel)
     }
   }, [userId])
+
+  // Dispatch alerts realtime (regulators only)
+  useEffect(() => {
+    if (!isSupabaseConfigured || !userId || role !== 'regulator') return
+    let cancelled = false
+    const guard = <T,>(fn: (v: T) => void) => (v: T) => {
+      if (!cancelled) fn(v)
+    }
+    fetchAllDispatchAlerts().then(guard(setDispatchAlerts)).catch(() => {})
+
+    const channel = supabase
+      .channel('realtime:dispatch')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dispatch_alerts' }, (payload) => {
+        if (cancelled) return
+        const alert = payload.new as DispatchAlert
+        setDispatchAlerts((prev) => (prev.some((a) => a.id === alert.id) ? prev : [alert, ...prev]))
+        // Toast notification for new dispatch
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('resq:new-dispatch', { detail: alert }))
+        }
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'dispatch_alerts' }, (payload) => {
+        if (cancelled) return
+        const alert = payload.new as DispatchAlert
+        setDispatchAlerts((prev) => prev.map((a) => (a.id === alert.id ? alert : a)))
+      })
+      .subscribe()
+
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
+  }, [userId, role])
 
   const navigate = useCallback((r: Route) => {
     const h = routeToHash(r)
@@ -258,8 +334,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
+  const updateDispatchStatus = useCallback(async (id: string, status: DispatchAlert['status']) => {
+    if (!isSupabaseConfigured) return
+    await supabase.from('dispatch_alerts').update({ status }).eq('id', id)
+    setDispatchAlerts((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)))
+  }, [])
+
   const signOut = useCallback(async () => {
     if (isSupabaseConfigured) await supabase.auth.signOut()
+    // Clear guest session
+    const guestId = localStorage.getItem('resq.guest.current')
+    if (guestId) {
+      localStorage.removeItem(`resq.guest.${guestId}`)
+      localStorage.removeItem('resq.guest.current')
+    }
     setReports(isSupabaseConfigured ? [] : INITIAL_REPORTS)
   }, [])
 
@@ -273,15 +361,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setRole,
       reports,
       detections,
+      dispatchAlerts,
       addReport,
       updateStatus,
       assignTeam,
+      updateDispatchStatus,
       signOut,
       authReady,
       signedIn: isSupabaseConfigured ? !!session : true,
       user: isSupabaseConfigured ? { name: session?.name ?? '', email: session?.email ?? '' } : { name: 'Ama Mensah', email: 'ama.mensah@gmail.com' },
     }),
-    [route, navigate, theme, setTheme, role, setRole, reports, detections, addReport, updateStatus, assignTeam, signOut, authReady, session],
+    [route, navigate, theme, setTheme, role, setRole, reports, detections, dispatchAlerts, addReport, updateStatus, assignTeam, updateDispatchStatus, signOut, authReady, session],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

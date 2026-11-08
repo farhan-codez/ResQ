@@ -1,6 +1,6 @@
 export type Severity = 'low' | 'medium' | 'high'
 export type Status = 'pending' | 'investigating' | 'resolved'
-export type Role = 'citizen' | 'regulator'
+export type Role = 'citizen' | 'regulator' | 'guest'
 export type Category = 'galamsey' | 'water_pollution' | 'medical' | 'fire' | 'security' | 'other'
 
 export interface TimelineEvent {
@@ -61,4 +61,12 @@ export interface DispatchAlert {
   createdAt: number
   status: 'dispatched' | 'acknowledged' | 'en_route' | 'on_scene' | 'closed'
   notes?: string
+}
+
+/** Guest user (no Ghana Card) — identified by facial scan */
+export interface Guest {
+  id: string
+  faceDescriptor: number[] // Face-api.js descriptor
+  createdAt: number
+  lastSeen: number
 }

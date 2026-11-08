@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { CircleAlert, Eye, EyeOff } from 'lucide-react'
+import { CircleAlert, Eye, EyeOff, User } from 'lucide-react'
 import { AuthCard, AuthLayout } from '@/components/layout/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { FieldError, Input, Label } from '@/components/ui/Field'
@@ -181,6 +181,19 @@ export function Login() {
           <span className="inline-flex items-center gap-2">
             <GoogleIcon />
             Continue with Google
+          </span>
+        </Button>
+
+        <Button
+          variant="secondary"
+          block
+          size="lg"
+          onClick={() => navigate({ name: 'guest' })}
+          className="mt-4"
+        >
+          <span className="inline-flex items-center gap-2">
+            <User className="size-5" aria-hidden />
+            Continue as Guest
           </span>
         </Button>
 
