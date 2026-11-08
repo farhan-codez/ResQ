@@ -57,20 +57,12 @@ interface AppState {
   signOut: () => Promise<void>
   authReady: boolean
   signedIn: boolean
-  simulateFailure: boolean
-  setSimulateFailure: (v: boolean) => void
-  emptyData: boolean
-  setEmptyData: (v: boolean) => void
-  embedded: boolean
   user: { name: string; email: string }
 }
 
 const Ctx = createContext<AppState | null>(null)
 
-const SEED_IDS = new Set(INITIAL_REPORTS.map((r) => r.id))
-
 const search = new URLSearchParams(window.location.search)
-const embedded = search.get('embed') === '1'
 
 function stored<T extends string>(key: string, fallback: T): T {
   const fromQuery = search.get(key)
@@ -85,13 +77,11 @@ function stored<T extends string>(key: string, fallback: T): T {
 export function AppProvider({ children }: { children: ReactNode }) {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash))
   const [theme, setThemeState] = useState<Theme>(() => stored<Theme>('theme', 'light'))
-  const [role, setRoleState] = useState<Role>(() => stored<Role>('role', 'regulator'))
+  const [role, setRoleState] = useState<Role>(() => stored<Role>('role', 'citizen'))
   const [reports, setReports] = useState<Report[]>(isSupabaseConfigured ? [] : INITIAL_REPORTS)
   const [detections, setDetections] = useState<Detection[]>(isSupabaseConfigured ? [] : DETECTIONS)
   const [session, setSession] = useState<{ id: string; email: string; name: string } | null>(null)
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured)
-  const [simulateFailure, setSimulateFailure] = useState(false)
-  const [emptyData, setEmptyData] = useState(false)
 
   useEffect(() => {
     const onHash = () => setRoute(parseHash(window.location.hash))
@@ -137,11 +127,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [])
 
   // Route guard: reports and map need a signed-in user. Signed-in users skip the login screen.
+  // The regulator workspace is for regulator accounts only.
   useEffect(() => {
     if (!isSupabaseConfigured || !authReady) return
     if (!session && (route.name === 'dashboard' || route.name === 'reports')) navigate({ name: 'login' })
     else if (session && route.name === 'login') navigate({ name: 'dashboard' })
-  }, [authReady, session, route]) // eslint-disable-line react-hooks/exhaustive-deps
+    else if (session && route.name === 'reports' && role !== 'regulator') navigate({ name: 'dashboard' })
+  }, [authReady, session, route, role]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Complaints + detections: load and stay live (signed-in only, so RLS-visible rows match the session).
   const userId = session?.id
@@ -275,7 +267,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setTheme,
       role,
       setRole,
-      reports: emptyData ? reports.filter((r) => !SEED_IDS.has(r.id)) : reports,
+      reports,
       detections,
       addReport,
       updateStatus,
@@ -283,14 +275,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       signOut,
       authReady,
       signedIn: isSupabaseConfigured ? !!session : true,
-      simulateFailure,
-      setSimulateFailure,
-      emptyData,
-      setEmptyData,
-      embedded,
       user: isSupabaseConfigured ? { name: session?.name ?? '', email: session?.email ?? '' } : { name: 'Ama Mensah', email: 'ama.mensah@gmail.com' },
     }),
-    [route, navigate, theme, setTheme, role, setRole, reports, detections, addReport, updateStatus, assignTeam, signOut, authReady, session, simulateFailure, emptyData],
+    [route, navigate, theme, setTheme, role, setRole, reports, detections, addReport, updateStatus, assignTeam, signOut, authReady, session],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

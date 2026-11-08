@@ -19,7 +19,7 @@ const dotTone: Record<Status, string> = {
 }
 
 function AssignTeam({ reportId, current }: { reportId: string; current?: string }) {
-  const { assignTeam, simulateFailure } = useApp()
+  const { assignTeam } = useApp()
   const toast = useToast()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -27,7 +27,6 @@ function AssignTeam({ reportId, current }: { reportId: string; current?: string 
   const choose = async (team: string) => {
     setOpen(false)
     const failToast = () => toast({ tone: 'error', title: "We couldn't assign the team.", description: 'Nothing was changed. Check your connection.', action: { label: 'Try again', onClick: () => choose(team) } })
-    if (simulateFailure) return failToast()
     try {
       await assignTeam(reportId, team)
     } catch {
@@ -55,7 +54,7 @@ function AssignTeam({ reportId, current }: { reportId: string; current?: string 
 }
 
 export function IncidentDetail({ id, onClose, onShowOnMap }: { id: string; onClose: () => void; onShowOnMap?: (id: string) => void }) {
-  const { reports, role, updateStatus, simulateFailure } = useApp()
+  const { reports, role, updateStatus } = useApp()
   const toast = useToast()
   const report = reports.find((r) => r.id === id)
   const [loading, setLoading] = useState(true)
@@ -97,7 +96,6 @@ export function IncidentDetail({ id, onClose, onShowOnMap }: { id: string; onClo
   const changeStatus = async (s: Status) => {
     if (!report) return
     const failToast = () => toast({ tone: 'error', title: "We couldn't update the status.", description: 'Nothing was changed. Check your connection.', action: { label: 'Try again', onClick: () => changeStatus(s) } })
-    if (simulateFailure) return failToast()
     try {
       await updateStatus(report.id, s)
     } catch {

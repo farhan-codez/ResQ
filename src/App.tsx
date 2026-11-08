@@ -1,7 +1,5 @@
-import { useState } from 'react'
-import { PrototypePanel } from '@/components/PrototypePanel'
 import { ToastProvider } from '@/components/ui/Toast'
-import { AppProvider, routeToHash, useApp } from '@/lib/store'
+import { AppProvider, useApp } from '@/lib/store'
 import { Dashboard } from '@/screens/Dashboard'
 import { Library } from '@/screens/Library'
 import { Login } from '@/screens/Login'
@@ -12,8 +10,9 @@ function Screen() {
   const { route, authReady } = useApp()
   if (!authReady) return null
   switch (route.name) {
+    // Design-system showcase. Development builds only; never shipped to users.
     case 'library':
-      return <Library />
+      return import.meta.env.DEV ? <Library /> : <Login />
     case 'signup':
       return <Signup />
     case 'dashboard':
@@ -25,39 +24,11 @@ function Screen() {
   }
 }
 
-/** Renders the app at 375px inside an iframe so real mobile breakpoints apply. */
-function MobileFrame() {
-  const { route, theme, role } = useApp()
-  const src = `${window.location.pathname}?embed=1&theme=${theme}&role=${role}${routeToHash(route)}`
-  return (
-    <div className="flex min-h-full items-center justify-center bg-surface-3 p-8">
-      <div className="flex flex-col items-center gap-3">
-        <div className="overflow-hidden rounded-[44px] border-[10px] border-[#101413] bg-[#101413] shadow-overlay">
-          <iframe id="resq-mobile-frame" key={`${theme}-${role}`} title="ResQ mobile preview, 375 by 812" src={src} className="block h-[812px] w-[375px] rounded-[34px] bg-bg" />
-        </div>
-        <p className="text-xs text-fg-muted">375 × 812 · mobile layout</p>
-      </div>
-    </div>
-  )
-}
-
-function Root() {
-  const { embedded } = useApp()
-  const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop')
-  if (embedded) return <Screen />
-  return (
-    <>
-      {device === 'mobile' ? <MobileFrame /> : <Screen />}
-      <PrototypePanel device={device} setDevice={setDevice} />
-    </>
-  )
-}
-
 export default function App() {
   return (
     <AppProvider>
       <ToastProvider>
-        <Root />
+        <Screen />
       </ToastProvider>
     </AppProvider>
   )

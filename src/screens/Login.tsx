@@ -12,7 +12,7 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabaseClient'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function Login() {
-  const { navigate, simulateFailure } = useApp()
+  const { navigate } = useApp()
   const toast = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -39,7 +39,6 @@ export function Login() {
       setTimeout(() => errRef.current?.focus(), 0)
     }
     if (isSupabaseConfigured) {
-      if (simulateFailure) return fail()
       supabase.auth
         .signInWithPassword({ email: email.trim(), password })
         .then(({ error }) => {
@@ -52,7 +51,7 @@ export function Login() {
     }
     setTimeout(() => {
       setLoading(null)
-      if (simulateFailure || password.toLowerCase() === 'wrong') return fail()
+      if (password.toLowerCase() === 'wrong') return fail()
       navigate({ name: 'dashboard' })
     }, 1200)
   }

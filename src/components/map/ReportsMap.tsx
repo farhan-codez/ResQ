@@ -19,6 +19,11 @@ export interface MapHandle {
 
 interface Props {
   reports: Report[]
+  /**
+   * 'regulator' shows incident markers, satellite detections, layers and the legend.
+   * 'citizen' shows the base map and the user's own location only - no incident highlights.
+   */
+  variant?: 'regulator' | 'citizen'
   selectedId?: string
   onViewDetails: (id: string) => void
   draft?: { lat: number; lng: number }
@@ -29,12 +34,17 @@ interface Props {
   loading?: boolean
 }
 
-export const TILE = {
-  light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-  dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-}
+/**
+ * OpenStreetMap standard tiles. Carto's basemaps now demand an API key and watermark
+ * every tile without one, so we serve OSM directly. The dark theme is derived from the
+ * same tiles in CSS (`.dark .leaflet-tile-pane` in index.css), which also means
+ * switching themes no longer refetches every tile.
+ */
+const OSM_TILE = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+
+export const TILE = { light: OSM_TILE, dark: OSM_TILE }
 const HIGH = { light: '#d42c1f', dark: '#e0412f' }
-export const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+export const ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 
 function Bridge({ onReady, pickMode, onPick }: { onReady: (m: L.Map) => void; pickMode?: boolean; onPick?: (lat: number, lng: number) => void }) {
   const map = useMap()
@@ -59,10 +69,11 @@ function Bridge({ onReady, pickMode, onPick }: { onReady: (m: L.Map) => void; pi
 }
 
 export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
-  { reports, selectedId, onViewDetails, draft, pickMode, onPick, onCancelPick, compact, loading },
+  { reports, variant = 'regulator', selectedId, onViewDetails, draft, pickMode, onPick, onCancelPick, compact, loading },
   ref,
 ) {
   const { theme, detections } = useApp()
+  const citizen = variant === 'citizen'
   const toast = useToast()
   const mapRef = useRef<L.Map | null>(null)
   const markerRefs = useRef(new Map<string, L.Marker>())
@@ -115,14 +126,33 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
     )
   }
 
+  // Citizens open on their own location. Nothing else is pinned for them.
+  useEffect(() => {
+    if (!citizen || !navigator.geolocation) return
+    let cancelled = false
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (cancelled) return
+        const p: [number, number] = [pos.coords.latitude, pos.coords.longitude]
+        setMe(p)
+        mapRef.current?.flyTo(p, 13, { duration: 0.8 })
+      },
+      () => {},
+      { timeout: 8000, enableHighAccuracy: false },
+    )
+    return () => {
+      cancelled = true
+    }
+  }, [citizen])
+
   return (
-    <div className="relative isolate h-full w-full overflow-hidden bg-surface-2" aria-label="Incident map" role="region">
+    <div className="relative isolate h-full w-full overflow-hidden bg-surface-2" aria-label={citizen ? 'Map' : 'Incident map'} role="region">
       <MapContainer center={GHANA_CENTER} zoom={compact ? 7 : 8} minZoom={6} maxZoom={17} zoomControl={false} className="h-full w-full" attributionControl>
-        <TileLayer key={theme} url={TILE[theme]} attribution={ATTRIBUTION} subdomains="abcd" />
+        <TileLayer url={TILE[theme]} attribution={ATTRIBUTION} />
         <Bridge onReady={(m) => {
           mapRef.current = m
         }} pickMode={pickMode} onPick={onPick} />
-        {showDetections &&
+        {!citizen && showDetections &&
           detections.map((d) => (
             <Polygon
               key={d.id}
@@ -156,7 +186,7 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
               )}
             </Polygon>
           ))}
-        {showReports &&
+        {!citizen && showReports &&
           reports.map((r) => (
             <Marker
               key={r.id}
@@ -193,15 +223,17 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
         {me && <Marker position={me} icon={meIcon} interactive={false} keyboard={false} />}
       </MapContainer>
 
-      {/* Live indicator */}
-      <div className={cx('absolute top-4 right-4 z-[500] flex h-8 items-center gap-2 rounded-lg border border-border bg-surface px-3 text-xs font-medium text-fg', compact && 'top-3 right-3')}>
-        <span className="resq-pulse relative size-2 rounded-full bg-resolved-fg" aria-hidden />
-        Live
-        <span className="sr-only">. Reports update in real time.</span>
-      </div>
+      {/* Live indicator (regulators watch the feed; citizens don't need it) */}
+      {!citizen && (
+        <div className={cx('absolute top-4 right-4 z-[500] flex h-8 items-center gap-2 rounded-lg border border-border bg-surface px-3 text-xs font-medium text-fg', compact && 'top-3 right-3')}>
+          <span className="resq-pulse relative size-2 rounded-full bg-resolved-fg" aria-hidden />
+          Live
+          <span className="sr-only">. Reports update in real time.</span>
+        </div>
+      )}
 
       {/* Controls */}
-      <div className={cx('absolute right-4 z-[500] flex flex-col gap-2', compact ? 'top-14 right-3' : 'top-16')}>
+      <div className={cx('absolute z-[500] flex flex-col gap-2', citizen ? (compact ? 'top-3 right-3' : 'top-4 right-4') : compact ? 'top-14 right-3' : 'top-16 right-4')}>
         <div className="flex flex-col overflow-hidden rounded-lg border border-border bg-surface">
           <IconButton tone="map" label="Zoom in" tooltipSide="left" icon={Plus} className="rounded-none" onClick={() => mapRef.current?.zoomIn()} />
           <span className="h-px bg-border" />
@@ -210,10 +242,11 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
         <div className="rounded-lg border border-border bg-surface">
           <IconButton tone="map" label={locating ? 'Finding your location' : 'Locate me'} tooltipSide="left" icon={LocateFixed} onClick={locate} className={locating ? 'animate-pulse' : ''} />
         </div>
-        <div ref={layersRef} className="relative">
-          <div className="rounded-lg border border-border bg-surface">
-            <IconButton tone="map" label="Map layers" tooltipSide="left" icon={Layers} aria-expanded={layersOpen} aria-haspopup="true" onClick={() => setLayersOpen((v) => !v)} />
-          </div>
+        {!citizen && (
+          <div ref={layersRef} className="relative">
+            <div className="rounded-lg border border-border bg-surface">
+              <IconButton tone="map" label="Map layers" tooltipSide="left" icon={Layers} aria-expanded={layersOpen} aria-haspopup="true" onClick={() => setLayersOpen((v) => !v)} />
+            </div>
           {layersOpen && (
             <div className="animate-fade absolute top-0 right-full mr-2 w-60 rounded-lg border border-border bg-surface p-2 shadow-overlay" role="group" aria-label="Map layers">
               <p className="px-2 pt-1 pb-2 text-xs font-medium text-fg-muted">Show on map</p>
@@ -240,11 +273,13 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
               ))}
             </div>
           )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Legend */}
-      <div className={cx('absolute z-[500]', compact ? 'top-3 left-3' : 'bottom-6 left-4')}>
+      {!citizen && (
+        <div className={cx('absolute z-[500]', compact ? 'top-3 left-3' : 'bottom-6 left-4')}>
         {compact && !legendOpen ? (
           <button type="button" onClick={() => setLegendOpen(true)} className="flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-border bg-surface px-3 text-sm font-medium text-fg">
             <span className="flex -space-x-1" aria-hidden>
@@ -280,7 +315,8 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
             </ul>
           </div>
         )}
-      </div>
+        </div>
+      )}
 
       {pickMode && (
         <div className="absolute top-4 left-1/2 z-[600] flex -translate-x-1/2 items-center gap-3 rounded-lg border border-border bg-surface py-2 pr-2 pl-4 shadow-overlay">
@@ -320,7 +356,7 @@ export function MapThumb({ report }: { report: Report }) {
         attributionControl={false}
         className="h-full w-full"
       >
-        <TileLayer key={theme} url={TILE[theme]} subdomains="abcd" />
+        <TileLayer url={TILE[theme]} />
         <Marker position={[report.lat, report.lng]} icon={severityIcon(report.severity)} interactive={false} keyboard={false} />
       </MapContainer>
     </div>

@@ -10,6 +10,8 @@ import type { Report } from '@/lib/types'
 
 type Active = 'map' | 'reports'
 
+const initialsOf = (name: string) => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?'
+
 function SearchBox({ onDone, autoFocus }: { onDone?: () => void; autoFocus?: boolean }) {
   const { reports, navigate } = useApp()
   const [q, setQ] = useState('')
@@ -184,7 +186,7 @@ function Segmented<T extends string>({ value, options, onChange, label }: { valu
 
 export function AccountPanel({ onClose }: { onClose: () => void }) {
   const { user, role, setRole, theme, setTheme, navigate, signOut } = useApp()
-  const initials = user.name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join('') || '?'
+  const initials = initialsOf(user.name)
   return (
     <div className="flex flex-col">
       <div className="flex items-center gap-3 border-b border-border p-4">
@@ -195,18 +197,20 @@ export function AccountPanel({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       <div className="space-y-4 p-4">
-        <div className="space-y-2">
-          <p className="text-xs font-medium text-fg-muted">View as</p>
-          <Segmented
-            label="View as"
-            value={role}
-            onChange={setRole}
-            options={[
-              { value: 'citizen', label: 'Citizen' },
-              { value: 'regulator', label: 'Regulator' },
-            ]}
-          />
-        </div>
+        {import.meta.env.DEV && (
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-fg-muted">View as</p>
+            <Segmented
+              label="View as"
+              value={role}
+              onChange={setRole}
+              options={[
+                { value: 'citizen', label: 'Citizen' },
+                { value: 'regulator', label: 'Regulator' },
+              ]}
+            />
+          </div>
+        )}
         <div className="space-y-2">
           <p className="text-xs font-medium text-fg-muted">Theme</p>
           <Segmented
@@ -221,16 +225,18 @@ export function AccountPanel({ onClose }: { onClose: () => void }) {
         </div>
       </div>
       <div className="border-t border-border p-2">
-        <button
-          type="button"
-          onClick={() => {
-            onClose()
-            navigate({ name: 'library' })
-          }}
-          className="flex h-11 w-full cursor-pointer items-center gap-3 rounded-md px-3 text-sm text-fg hover:bg-surface-2 md:h-10"
-        >
-          <LayoutGrid className="size-5 text-fg-muted" aria-hidden /> Open component library
-        </button>
+        {import.meta.env.DEV && (
+          <button
+            type="button"
+            onClick={() => {
+              onClose()
+              navigate({ name: 'library' })
+            }}
+            className="flex h-11 w-full cursor-pointer items-center gap-3 rounded-md px-3 text-sm text-fg hover:bg-surface-2 md:h-10"
+          >
+            <LayoutGrid className="size-5 text-fg-muted" aria-hidden /> Open component library
+          </button>
+        )}
         <button
           type="button"
           onClick={() => {
@@ -247,6 +253,7 @@ export function AccountPanel({ onClose }: { onClose: () => void }) {
 }
 
 function AvatarMenu() {
+  const { user } = useApp()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
   useDismiss(ref, open, () => setOpen(false))
@@ -260,7 +267,7 @@ function AvatarMenu() {
         onClick={() => setOpen((v) => !v)}
         className="flex size-10 cursor-pointer items-center justify-center rounded-full bg-white text-sm font-semibold text-nav ring-2 ring-transparent hover:ring-white/40"
       >
-        AM
+        {initialsOf(user.name)}
       </button>
       {open && (
         <div className="animate-fade absolute top-full right-0 z-[1100] mt-2 w-72 overflow-hidden rounded-lg border border-border bg-surface shadow-overlay">
@@ -296,11 +303,12 @@ export function AppShell({ active, children, onReport }: { active: Active; child
   const { role, navigate } = useApp()
   const [mobileSearch, setMobileSearch] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const isRegulator = role === 'regulator'
 
+  // Citizens get Map / Report / Account. Regulators get the triage workspace.
   const tabs = [
     { key: 'map', label: 'Map', icon: MapIcon, onClick: () => navigate({ name: 'dashboard' }), current: active === 'map' },
-    ...(role === 'regulator' ? [{ key: 'reports', label: 'Reports', icon: List, onClick: () => navigate({ name: 'reports' }), current: active === 'reports' }] : []),
-    { key: 'report', label: 'Report', icon: Siren, onClick: onReport, current: false, alert: true },
+    ...(isRegulator ? [{ key: 'reports', label: 'Reports', icon: List, onClick: () => navigate({ name: 'reports' }), current: active === 'reports' }] : [{ key: 'report', label: 'Report', icon: Siren, onClick: onReport, current: false, alert: true }]),
     { key: 'account', label: 'Account', icon: User, onClick: () => setAccountOpen(true), current: false },
   ]
 
@@ -332,19 +340,18 @@ export function AppShell({ active, children, onReport }: { active: Active; child
             ))}
           </nav>
         )}
-        <div className="mx-auto hidden w-full max-w-md md:block">
-          <SearchBox />
-        </div>
+        {isRegulator && (
+          <div className="mx-auto hidden w-full max-w-md md:block">
+            <SearchBox />
+          </div>
+        )}
         <div className="ml-auto flex items-center gap-1 md:ml-0 md:gap-2">
-          <span className="md:hidden">
-            <IconButton tone="nav" icon={Search} label="Search" tooltipSide="bottom" onClick={() => setMobileSearch(true)} />
-          </span>
-          <span className="hidden md:inline-flex">
-            <Button variant="alert" icon={Siren} onClick={onReport}>
-              Report emergency
-            </Button>
-          </span>
-          <Notifications />
+          {isRegulator && (
+            <span className="md:hidden">
+              <IconButton tone="nav" icon={Search} label="Search" tooltipSide="bottom" onClick={() => setMobileSearch(true)} />
+            </span>
+          )}
+          {isRegulator && <Notifications />}
           <AvatarMenu />
         </div>
         {mobileSearch && (

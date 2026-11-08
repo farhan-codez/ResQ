@@ -51,7 +51,8 @@ function PanelSkeleton() {
 }
 
 export function Dashboard() {
-  const { route, navigate, reports } = useApp()
+  const { route, navigate, reports, role } = useApp()
+  const isRegulator = role === 'regulator'
   const isMobile = useIsMobile()
   const mapRef = useRef<MapHandle>(null)
   const titleRef = useRef<HTMLInputElement>(null)
@@ -94,12 +95,6 @@ export function Dashboard() {
     }
   }, [route, openReport])
 
-  useEffect(() => {
-    const onDemo = () => isMobile && setSheetOpen(true)
-    window.addEventListener('resq:demo-submit', onDemo)
-    return () => window.removeEventListener('resq:demo-submit', onDemo)
-  }, [isMobile])
-
   const viewOnMap = (id: string) => {
     setSheetOpen(false)
     setTimeout(() => mapRef.current?.focusReport(id), isMobile ? 250 : 0)
@@ -129,18 +124,21 @@ export function Dashboard() {
   }
 
   const form = (compact: boolean) => (
-    <ReportForm compact={compact} location={location} picking={picking} onChangeLocation={togglePick} onViewOnMap={viewOnMap} titleRef={titleRef} />
+    <ReportForm compact={compact} location={location} picking={picking} onChangeLocation={togglePick} onViewOnMap={isRegulator ? viewOnMap : undefined} titleRef={titleRef} />
   )
 
   return (
     <AppShell active="map" onReport={openReport}>
       <div className="flex h-full">
-        <aside ref={panelRef} aria-label="Report form" className="hidden w-[400px] shrink-0 overflow-y-auto border-r border-border bg-surface md:block">
-          {loading ? <PanelSkeleton /> : !isMobile && form(false)}
-        </aside>
+        {!isRegulator && (
+          <aside ref={panelRef} aria-label="Report form" className="hidden w-[400px] shrink-0 overflow-y-auto border-r border-border bg-surface md:block">
+            {loading ? <PanelSkeleton /> : !isMobile && form(false)}
+          </aside>
+        )}
         <div className="relative min-w-0 flex-1">
           <ReportsMap
             ref={mapRef}
+            variant={isRegulator ? 'regulator' : 'citizen'}
             reports={reports}
             selectedId={incident}
             onViewDetails={(id) => navigate({ name: 'dashboard', incident: id })}
@@ -152,7 +150,7 @@ export function Dashboard() {
             loading={loading}
           />
           {/* Mobile peek: collapsed state of the report bottom sheet */}
-          {isMobile && !picking && (
+          {!isRegulator && isMobile && !picking && (
             <button
               type="button"
               onClick={() => setSheetOpen(true)}
@@ -175,7 +173,7 @@ export function Dashboard() {
         </div>
       </div>
 
-      {isMobile && (
+      {!isRegulator && isMobile && (
         <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} label="Report illegal mining" full keepMounted>
           <div className="flex items-center justify-between border-b border-border px-4 pb-3">
             <h2 className="text-xl text-fg">Report illegal mining</h2>
@@ -187,10 +185,12 @@ export function Dashboard() {
         </BottomSheet>
       )}
 
-      {incident && <IncidentDetail id={incident} onClose={() => navigate({ name: 'dashboard' })} onShowOnMap={(id) => {
-        navigate({ name: 'dashboard' })
-        setTimeout(() => mapRef.current?.focusReport(id), 300)
-      }} />}
+      {isRegulator && incident && (
+        <IncidentDetail id={incident} onClose={() => navigate({ name: 'dashboard' })} onShowOnMap={(id) => {
+          navigate({ name: 'dashboard' })
+          setTimeout(() => mapRef.current?.focusReport(id), 300)
+        }} />
+      )}
     </AppShell>
   )
 }

@@ -41,11 +41,12 @@ export function ReportForm({
   location: DraftLocation
   onChangeLocation: () => void
   picking?: boolean
-  onViewOnMap: (id: string) => void
+  /** Omitted for citizens: their map shows only their own location, not incidents. */
+  onViewOnMap?: (id: string) => void
   titleRef?: React.RefObject<HTMLInputElement | null>
   compact?: boolean
 }) {
-  const { addReport, simulateFailure, user } = useApp()
+  const { addReport, user } = useApp()
   const toast = useToast()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
@@ -69,27 +70,6 @@ export function ReportForm({
   useEffect(() => {
     if (sent) successRef.current?.focus()
   }, [sent])
-
-  // Prototype shortcut: fill and send a sample report to preview the confirmation.
-  const [autoSubmit, setAutoSubmit] = useState(false)
-  useEffect(() => {
-    const onDemo = () => {
-      setSent(null)
-      setTitle('Excavators working on the Birim River bank')
-      setDescription('Two excavators and about ten workers digging on the river bank since this morning. The water is brown.')
-      setSeverity('high')
-      setAutoSubmit(true)
-    }
-    window.addEventListener('resq:demo-submit', onDemo)
-    return () => window.removeEventListener('resq:demo-submit', onDemo)
-  }, [])
-  useEffect(() => {
-    if (autoSubmit) {
-      setAutoSubmit(false)
-      submit()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoSubmit])
 
   const reset = () => {
     setTitle('')
@@ -116,7 +96,6 @@ export function ReportForm({
         setFailed(true)
         setTimeout(() => errorRef.current?.focus(), 0)
       }
-      if (simulateFailure) return showFailure()
       const id = newReportId()
       const now = Date.now()
       const [place, region = 'Ghana'] = location.place.split(',').map((s) => s.trim().replace(/ Region$/, ''))
@@ -142,7 +121,11 @@ export function ReportForm({
       }
       setSubmitting(false)
       setSent(report)
-      toast({ tone: 'success', title: 'Report sent. Regulators can see it now.', action: { label: 'View on map', onClick: () => onViewOnMap(id) } })
+      toast({
+        tone: 'success',
+        title: 'Report sent. Regulators can see it now.',
+        ...(onViewOnMap && { action: { label: 'View on map', onClick: () => onViewOnMap(id) } }),
+      })
     })()
   }
 
@@ -156,7 +139,9 @@ export function ReportForm({
           Report sent. Regulators can see it now.
         </h2>
         <p className="mt-2 text-sm text-fg-muted">
-          Your report is on the live map. We'll notify you at {anonymous ? 'no address (sent anonymously)' : user.email} when its status changes.
+          {anonymous
+            ? 'Your report is with the regulators responsible for this area. It was sent anonymously, so there is no address to reply to.'
+            : `Your report is with the regulators responsible for this area. We'll email ${user.email} when its status changes.`}
         </p>
         <div className="mt-6 rounded-lg border border-border bg-surface p-4">
           <div className="flex items-center justify-between gap-2">
@@ -173,10 +158,12 @@ export function ReportForm({
           </p>
         </div>
         <div className="mt-6 flex flex-col gap-2">
-          <Button icon={MapIcon} block onClick={() => onViewOnMap(sent.id)}>
-            View on map
-          </Button>
-          <Button variant="secondary" icon={PenLine} block onClick={reset}>
+          {onViewOnMap && (
+            <Button icon={MapIcon} block onClick={() => onViewOnMap(sent.id)}>
+              View on map
+            </Button>
+          )}
+          <Button variant={onViewOnMap ? 'secondary' : undefined} icon={PenLine} block onClick={reset}>
             Write another report
           </Button>
         </div>

@@ -362,6 +362,8 @@
   outline: 2px solid var(--ring);
   outline-offset: 3px;
 }
+/* Dark theme: derive a dark basemap from the light OSM tiles.
+   Filters apply to the tile pane only, so markers and overlays keep their colours. */
 .dark .leaflet-tile-pane {
-  filter: brightness(0.95);
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9) saturate(0.75);
 }
