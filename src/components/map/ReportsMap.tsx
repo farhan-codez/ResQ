@@ -30,6 +30,8 @@ interface Props {
   pickMode?: boolean
   onPick?: (lat: number, lng: number) => void
   onCancelPick?: () => void
+  /** Called when citizen's live location is detected */
+  onLocationFound?: (lat: number, lng: number, place: string) => void
   compact?: boolean
   loading?: boolean
 }
@@ -69,7 +71,7 @@ function Bridge({ onReady, pickMode, onPick }: { onReady: (m: L.Map) => void; pi
 }
 
 export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
-  { reports, variant = 'regulator', selectedId, onViewDetails, draft, pickMode, onPick, onCancelPick, compact, loading },
+  { reports, variant = 'regulator', selectedId, onViewDetails, draft, pickMode, onPick, onCancelPick, onLocationFound, compact, loading },
   ref,
 ) {
   const { theme, detections } = useApp()
@@ -136,6 +138,8 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
         const p: [number, number] = [pos.coords.latitude, pos.coords.longitude]
         setMe(p)
         mapRef.current?.flyTo(p, 13, { duration: 0.8 })
+        // Notify parent of live location for report form
+        onLocationFound?.(p[0], p[1], `Near ${p[0].toFixed(4)}, ${p[1].toFixed(4)}`)
       },
       () => {},
       { timeout: 8000, enableHighAccuracy: false },
@@ -143,7 +147,7 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
     return () => {
       cancelled = true
     }
-  }, [citizen])
+  }, [citizen, onLocationFound])
 
   return (
     <div className="relative isolate h-full w-full overflow-hidden bg-surface-2" aria-label={citizen ? 'Map' : 'Incident map'} role="region">
@@ -219,7 +223,6 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
               </Popup>
             </Marker>
           ))}
-        {draft && <Marker position={[draft.lat, draft.lng]} icon={draftIcon} interactive={false} keyboard={false} />}
         {me && <Marker position={me} icon={meIcon} interactive={false} keyboard={false} />}
       </MapContainer>
 

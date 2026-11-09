@@ -362,9 +362,11 @@ export function ReportForm({
               {!picking && <span className="text-xs font-normal text-fg-muted">{location.source === 'detected' ? 'Auto-detected' : 'Set on map'}</span>}
             </p>
             <p className="tabular text-xs text-fg-muted">{formatCoords(location.lat, location.lng)}</p>
-            <button type="button" onClick={onChangeLocation} className="-mx-1 mt-1 min-h-11 cursor-pointer rounded-md px-1 text-sm font-medium text-brand-soft-fg underline-offset-4 hover:underline md:min-h-0">
-              {picking ? 'Cancel' : 'Change location'}
-            </button>
+            {onViewOnMap && (
+              <button type="button" onClick={onChangeLocation} className="-mx-1 mt-1 min-h-11 cursor-pointer rounded-md px-1 text-sm font-medium text-brand-soft-fg underline-offset-4 hover:underline md:min-h-0">
+                {picking ? 'Cancel' : 'Change location'}
+              </button>
+            )}
           </div>
         </div>
       </div>

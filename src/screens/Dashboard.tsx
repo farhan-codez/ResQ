@@ -65,6 +65,12 @@ export function Dashboard() {
   const incident = route.name === 'dashboard' ? route.incident : undefined
   const focus = route.name === 'dashboard' ? route.focus : undefined
 
+  const handleLocationFound = useCallback((lat: number, lng: number, place: string) => {
+    if (!isRegulator) {
+      setLocation({ lat, lng, place, source: 'detected' })
+    }
+  }, [isRegulator])
+
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 700)
     return () => clearTimeout(t)
@@ -142,10 +148,11 @@ export function Dashboard() {
             reports={reports}
             selectedId={incident}
             onViewDetails={(id) => navigate({ name: 'dashboard', incident: id })}
-            draft={location}
-            pickMode={picking}
+            draft={isRegulator ? location : undefined}
+            pickMode={isRegulator && picking}
             onPick={onPick}
             onCancelPick={togglePick}
+            onLocationFound={handleLocationFound}
             compact={isMobile}
             loading={loading}
           />
@@ -164,7 +171,7 @@ export function Dashboard() {
                 </span>
                 <span className="flex-1">
                   <span className="block text-base font-medium text-fg">Report illegal mining</span>
-                  <span className="block truncate text-xs text-fg-muted">{location.source === 'detected' ? 'Location detected: ' : 'Location set: '}{location.place}</span>
+                  <span className="block truncate text-xs text-fg-muted">Your current location: {location.place}</span>
                 </span>
                 <ChevronUp className="size-5 text-fg-muted" aria-hidden />
               </span>
