@@ -63,7 +63,7 @@ export interface DispatchAlert {
   notes?: string
 }
 
-/** Guest user (no Ghana Card) — identified by facial scan */
+/** Guest user (no Ghana Card) - identified by facial scan */
 export interface Guest {
   id: string
   faceDescriptor: number[] // Face-api.js descriptor

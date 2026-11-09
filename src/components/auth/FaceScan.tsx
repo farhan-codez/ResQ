@@ -32,9 +32,6 @@ declare global {
 /**
  * Face scan component using face-api.js (loaded from CDN).
  * Captures a face descriptor for guest identification.
- * 
- * TODO: Replace with actual face-api.js integration when available.
- * For now this is a scaffold with the UI flow.
  */
 export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: number[]) => void; onCancel: () => void }) {
   const toast = useToast()
@@ -177,7 +174,7 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
         <Camera className="size-14 text-brand-soft-fg" aria-hidden />
         <h3 className="text-lg font-semibold text-fg">Face Scan for Guest Access</h3>
         <p className="text-sm text-fg-muted max-w-xs">
-          We'll scan your face to create a secure guest profile. No photos are stored — only a mathematical descriptor.
+          We'll scan your face to create a secure guest profile. No photos are stored - only a mathematical descriptor.
         </p>
         <Button variant="primary" icon={Camera} onClick={startCamera} className="w-full max-w-xs">
           Start Face Scan

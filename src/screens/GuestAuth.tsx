@@ -72,7 +72,7 @@ export function GuestAuth() {
                 <Shield className="mt-0.5 size-5 text-brand-soft-fg shrink-0" aria-hidden />
                 <div>
                   <p className="font-medium text-fg">Privacy first</p>
-                  <p className="text-xs text-fg-muted">Only a mathematical face descriptor is stored — no photos, no biometric images.</p>
+                  <p className="text-xs text-fg-muted">Only a mathematical face descriptor is stored - no photos, no biometric images.</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 p-3 rounded-lg bg-surface-2">
