@@ -384,41 +384,43 @@ export function AppShell({ active, children, onReport }: { active: Active; child
       <a href="#main" className="sr-only z-[2000] rounded-lg bg-surface px-3 py-2 text-sm font-medium text-fg focus:not-sr-only focus:fixed focus:top-2 focus:left-2">
         Skip to main content
       </a>
-      <header className="relative z-[1000] flex h-16 shrink-0 items-center gap-3 border-b border-nav-border bg-nav px-3 text-nav-fg md:gap-4 md:px-4">
-        <button type="button" onClick={() => navigate({ name: 'dashboard' })} className="cursor-pointer rounded-lg" aria-label="ResQ home">
-          <Logo onDark />
-        </button>
-        {isRegulator && (
-          <nav aria-label="Primary" className="ml-2 hidden items-center gap-1 md:flex">
-            {[
-              { k: 'map' as const, label: 'Live map', icon: MapIcon, r: { name: 'dashboard' as const } },
-              { k: 'reports' as const, label: 'Reports', icon: List, r: { name: 'reports' as const } },
-            ].map((n) => (
-              <button
-                key={n.k}
-                type="button"
-                aria-current={active === n.k ? 'page' : undefined}
-                onClick={() => navigate(n.r)}
-                className={cx('inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg px-3 text-sm font-medium', active === n.k ? 'bg-nav-2 text-nav-fg' : 'text-nav-fg-muted hover:bg-nav-2 hover:text-nav-fg')}
-              >
-                <n.icon className="size-5" aria-hidden />
-                {n.label}
-              </button>
-            ))}
-          </nav>
-        )}
-        {isRegulator && (
-          <div className="mx-auto hidden w-full max-w-md md:block">
-            <SearchBox />
-          </div>
-        )}
-        <div className="ml-auto flex items-center gap-1 md:ml-0 md:gap-2">
+      <header className="relative z-[1000] flex h-16 shrink-0 items-center justify-between border-b border-nav-border bg-nav px-3 text-nav-fg md:px-4">
+        <div className="flex items-center gap-3">
+          <button type="button" onClick={() => navigate({ name: 'dashboard' })} className="cursor-pointer rounded-lg" aria-label="ResQ home">
+            <Logo onDark />
+          </button>
           {isRegulator && (
-            <span className="md:hidden">
-              <IconButton tone="nav" icon={Search} label="Search" tooltipSide="bottom" onClick={() => setMobileSearch(true)} />
-            </span>
+            <nav aria-label="Primary" className="hidden items-center gap-1 md:flex">
+              {[
+                { k: 'map' as const, label: 'Live map', icon: MapIcon, r: { name: 'dashboard' as const } },
+                { k: 'reports' as const, label: 'Reports', icon: List, r: { name: 'reports' as const } },
+              ].map((n) => (
+                <button
+                  key={n.k}
+                  type="button"
+                  aria-current={active === n.k ? 'page' : undefined}
+                  onClick={() => navigate(n.r)}
+                  className={cx('inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg px-3 text-sm font-medium', active === n.k ? 'bg-nav-2 text-nav-fg' : 'text-nav-fg-muted hover:bg-nav-2 hover:text-nav-fg')}
+                >
+                  <n.icon className="size-5" aria-hidden />
+                  {n.label}
+                </button>
+              ))}
+            </nav>
           )}
-          {isRegulator && <Notifications />}
+        </div>
+        <div className="flex items-center gap-2 ml-auto">
+          {isRegulator && (
+            <>
+              <div className="hidden w-full max-w-md md:block">
+                <SearchBox />
+              </div>
+              <span className="md:hidden">
+                <IconButton tone="nav" icon={Search} label="Search" tooltipSide="bottom" onClick={() => setMobileSearch(true)} />
+              </span>
+              <Notifications />
+            </>
+          )}
           <AvatarMenu />
         </div>
         {mobileSearch && (
