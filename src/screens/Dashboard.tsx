@@ -170,7 +170,7 @@ export function Dashboard() {
                   <Siren className="size-5" aria-hidden />
                 </span>
                 <span className="flex-1">
-                  <span className="block text-base font-medium text-fg">Report illegal mining</span>
+                  <span className="block text-base font-medium text-fg">Report an issue</span>
                   <span className="block truncate text-xs text-fg-muted">Your current location: {location.place}</span>
                 </span>
                 <ChevronUp className="size-5 text-fg-muted" aria-hidden />
@@ -181,9 +181,9 @@ export function Dashboard() {
       </div>
 
       {!isRegulator && isMobile && (
-        <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} label="Report illegal mining" full keepMounted>
+        <BottomSheet open={sheetOpen} onClose={() => setSheetOpen(false)} label="Report an issue" full keepMounted>
           <div className="flex items-center justify-between border-b border-border px-4 pb-3">
-            <h2 className="text-xl text-fg">Report illegal mining</h2>
+            <h2 className="text-xl text-fg">Report an issue</h2>
             <button type="button" onClick={() => setSheetOpen(false)} className="min-h-11 cursor-pointer px-2 text-sm font-medium text-brand-soft-fg">
               Close
             </button>

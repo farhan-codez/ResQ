@@ -10,17 +10,16 @@ import { useApp } from '@/lib/store'
 import type { Report, Severity, Category } from '@/lib/types'
 import { SeverityPicker } from './SeverityPicker'
 
-type Field = 'title' | 'description' | 'category' | 'severity'
+type Field = 'title' | 'description' | 'category'
 type Errors = Partial<Record<Field, string>>
 
-function validate(v: { title: string; description: string; category: Category | null; severity: Severity | null }): Errors {
+function validate(v: { title: string; description: string; category: Category | null }): Errors {
   const e: Errors = {}
   if (!v.title.trim()) e.title = 'Add a short title, like "Excavators on the Pra River".'
   else if (v.title.trim().length < 5) e.title = 'Use at least 5 characters so regulators can scan it.'
   if (!v.description.trim()) e.description = 'Describe what you saw: machines, people, water colour.'
   else if (v.description.trim().length < 20) e.description = `Add a little more detail. ${20 - v.description.trim().length} more characters.`
   if (!v.category) e.category = 'Choose what kind of issue this is.'
-  if (!v.severity) e.severity = 'Choose how urgent this is.'
   return e
 }
 
@@ -51,7 +50,6 @@ export function ReportForm({
   const toast = useToast()
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [severity, setSeverity] = useState<Severity | null>(null)
   const [anonymous, setAnonymous] = useState(false)
   const [photos, setPhotos] = useState<{ url: string; name: string; file: File; source: 'camera' }[]>([])
   const [voiceNote, setVoiceNote] = useState<{ blob: Blob; url: string; duration: number } | null>(null)
@@ -67,12 +65,11 @@ export function ReportForm({
   const [sent, setSent] = useState<Report | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const descRef = useRef<HTMLTextAreaElement>(null)
-  const sevRef = useRef<HTMLDivElement>(null)
   const catRef = useRef<HTMLDivElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
   const successRef = useRef<HTMLHeadingElement>(null)
 
-  const errors = validate({ title, description, category, severity })
+  const errors = validate({ title, description, category })
   const show = (f: Field) => (touched[f] ? errors[f] : undefined)
   const blur = (f: Field) => setTouched((t) => ({ ...t, [f]: true }))
 
@@ -84,7 +81,6 @@ export function ReportForm({
     setTitle('')
     setDescription('')
     setCategory(null)
-    setSeverity(null)
     setAnonymous(false)
     setPhotos([])
     setVoiceNote(null)
@@ -147,11 +143,10 @@ export function ReportForm({
   const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
   const submit = () => {
-    setTouched({ title: true, description: true, category: true, severity: true })
+    setTouched({ title: true, description: true, category: true })
     if (errors.title) return titleRef?.current?.focus()
     if (errors.description) return descRef.current?.focus()
     if (errors.category) return (catRef.current?.querySelector('[tabindex="0"]') as HTMLElement | null)?.focus()
-    if (errors.severity) return (sevRef.current?.querySelector('[tabindex="0"]') as HTMLElement | null)?.focus()
     setSubmitting(true)
     setFailed(false)
     void (async () => {
@@ -168,7 +163,7 @@ export function ReportForm({
         title: title.trim(),
         description: description.trim(),
         category: category!,
-        severity: severity!,
+        severity: 'medium',
         status: 'pending',
         lat: location.lat,
         lng: location.lng,
@@ -249,14 +244,14 @@ export function ReportForm({
       {!compact && (
         <div>
           <h2 id="report-form-title" className="text-xl text-fg">
-            Report illegal mining
+            Report an issue
           </h2>
-          <p className="mt-1 text-sm text-fg-muted">Tell regulators what you see. Stay at a safe distance.</p>
+          <p className="mt-1 text-sm text-fg-muted">Tell us what you see. Stay at a safe distance.</p>
         </div>
       )}
       {compact && (
         <h2 id="report-form-title" className="sr-only">
-          Report illegal mining
+          Report an issue
         </h2>
       )}
 
@@ -328,25 +323,6 @@ export function ReportForm({
           <FieldError id="r-cat-err">{show('category')}</FieldError>
         ) : (
           <Hint id="r-cat-hint">What kind of issue are you reporting?</Hint>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-1.5" ref={sevRef}>
-        <span id="r-sev-label" className="text-sm font-medium text-fg">
-          Severity
-        </span>
-        <SeverityPicker
-          labelledBy="r-sev-label"
-          describedBy={show('severity') ? 'r-sev-err' : 'r-sev-hint'}
-          value={severity}
-          onChange={setSeverity}
-          onBlur={() => blur('severity')}
-          invalid={!!show('severity')}
-        />
-        {show('severity') ? (
-          <FieldError id="r-sev-err">{show('severity')}</FieldError>
-        ) : (
-          <Hint id="r-sev-hint">{severity ? SEVERITY[severity].desc + '.' : 'High means danger to people or a river right now.'}</Hint>
         )}
       </div>
 
