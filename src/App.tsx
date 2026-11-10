@@ -3,6 +3,7 @@ import { AppProvider, useApp } from '@/lib/store'
 import { Dashboard } from '@/screens/Dashboard'
 import { DispatchList } from '@/screens/Dispatch'
 import { GuestAuth } from '@/screens/GuestAuth'
+import { GuestUpgrade } from '@/screens/GuestUpgrade'
 import { Library } from '@/screens/Library'
 import { Login } from '@/screens/Login'
 import { ReportsList } from '@/screens/ReportsList'
@@ -19,6 +20,8 @@ function Screen() {
       return <Signup />
     case 'guest':
       return <GuestAuth />
+    case 'guest-upgrade':
+      return <GuestUpgrade />
     case 'dashboard':
       return <Dashboard />
     case 'reports':

@@ -6,16 +6,7 @@ import { Logo } from '@/components/ui/Logo'
 import { useToast } from '@/components/ui/Toast'
 import { useApp } from '@/lib/store'
 import { FaceScan } from '@/components/auth/FaceScan'
-
-/** Generate a deterministic guest ID from face descriptor */
-function guestIdFromDescriptor(descriptor: number[]): string {
-  let hash = 0
-  for (const v of descriptor) {
-    hash = (hash << 5) - hash + Math.round(v * 1000)
-    hash |= 0
-  }
-  return `GST-${Math.abs(hash).toString(36).toUpperCase().padStart(8, '0')}`
-}
+import { createGuest, guestIdFromDescriptor } from '@/lib/api'
 
 export function GuestAuth() {
   const { navigate } = useApp()
@@ -28,18 +19,16 @@ export function GuestAuth() {
     const id = guestIdFromDescriptor(descriptor)
     setGuestId(id)
 
-    // Store guest in localStorage for demo; in production this would go to Supabase
-    const guestData = {
-      id,
-      faceDescriptor: descriptor,
-      createdAt: Date.now(),
-      lastSeen: Date.now(),
+    try {
+      await createGuest(descriptor)
+      // Guest session is managed by the store via localStorage fallback for now
+      // In production, this would be handled by Supabase auth
+      localStorage.setItem('resq.guest.current', id)
+    } catch (e) {
+      toast({ tone: 'error', title: 'Failed to create guest profile', description: 'Please try again.' })
+      setStep('intro')
+      return
     }
-    localStorage.setItem(`resq.guest.${id}`, JSON.stringify(guestData))
-    localStorage.setItem('resq.guest.current', id)
-
-    // Simulate server round-trip
-    await new Promise((r) => setTimeout(r, 1200))
 
     setStep('done')
     toast({ tone: 'success', title: 'Guest profile created', description: `Your ID: ${id}` })

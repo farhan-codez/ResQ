@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { DETECTIONS, INITIAL_REPORTS } from './data'
 import type { Detection, DispatchAlert, Report, Role, Status } from './types'
 import { supabase, isSupabaseConfigured } from './supabaseClient'
-import { fetchDetections, fetchEvents, fetchProfile, fetchReports, insertReport, setComplaintStatus, setComplaintTeam, toReport } from './api'
+import { fetchDetections, fetchEvents, fetchProfile, fetchReports, insertReport, setComplaintStatus, setComplaintTeam, toReport, upgradeGuestToCitizen } from './api'
 import { createDispatchAlerts, fetchAlertsForReport, fetchAllDispatchAlerts } from './dispatch'
 
 export type Route =
@@ -10,6 +10,7 @@ export type Route =
   | { name: 'login' }
   | { name: 'signup' }
   | { name: 'guest' }
+  | { name: 'guest-upgrade' }
   | { name: 'dashboard'; incident?: string; focus?: string }
   | { name: 'reports'; incident?: string }
   | { name: 'dispatch'; alertId?: string }
@@ -27,6 +28,8 @@ function parseHash(hash: string): Route {
       return { name: 'signup' }
     case 'guest':
       return { name: 'guest' }
+    case 'guest-upgrade':
+      return { name: 'guest-upgrade' }
     case 'reports':
       return { name: 'reports', incident: params.get('incident') ?? undefined }
     case 'dashboard':
@@ -62,6 +65,7 @@ interface AppState {
   updateStatus: (id: string, status: Status) => Promise<void>
   assignTeam: (id: string, team: string) => Promise<void>
   updateDispatchStatus: (id: string, status: DispatchAlert['status']) => Promise<void>
+  upgradeGuest: (citizenUserId: string) => Promise<void>
   signOut: () => Promise<void>
   authReady: boolean
   signedIn: boolean
@@ -351,6 +355,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setReports(isSupabaseConfigured ? [] : INITIAL_REPORTS)
   }, [])
 
+  const upgradeGuest = useCallback(async (citizenUserId: string) => {
+    if (!isSupabaseConfigured) return
+    const guestId = localStorage.getItem('resq.guest.current')
+    if (!guestId) throw new Error('No guest session to upgrade')
+    await upgradeGuestToCitizen(guestId, citizenUserId)
+    // Clear guest session
+    localStorage.removeItem(`resq.guest.${guestId}`)
+    localStorage.removeItem('resq.guest.current')
+    // The auth state change will trigger a new session with citizen role
+  }, [])
+
   const value = useMemo<AppState>(
     () => ({
       route,
@@ -366,12 +381,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateStatus,
       assignTeam,
       updateDispatchStatus,
+      upgradeGuest,
       signOut,
       authReady,
       signedIn: isSupabaseConfigured ? !!session : true,
       user: isSupabaseConfigured ? { name: session?.name ?? '', email: session?.email ?? '' } : { name: 'Ama Mensah', email: 'ama.mensah@gmail.com' },
     }),
-    [route, navigate, theme, setTheme, role, setRole, reports, detections, dispatchAlerts, addReport, updateStatus, assignTeam, updateDispatchStatus, signOut, authReady, session],
+    [route, navigate, theme, setTheme, role, setRole, reports, detections, dispatchAlerts, addReport, updateStatus, assignTeam, updateDispatchStatus, upgradeGuest, signOut, authReady, session],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

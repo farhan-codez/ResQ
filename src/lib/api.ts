@@ -205,3 +205,65 @@ export async function uploadGhanaCard(blob: Blob, userId: string) {
   const { error: pErr } = await supabase.from('profiles').update({ ghana_card_path: path }).eq('id', userId)
   if (pErr) throw pErr
 }
+
+/** Guest management */
+
+export interface Guest {
+  id: string
+  face_descriptor: number[]
+  created_at: string
+  last_seen: string
+  upgraded_to_citizen: boolean
+  citizen_user_id: string | null
+}
+
+/** Generate a deterministic guest ID from face descriptor */
+export function guestIdFromDescriptor(descriptor: number[]): string {
+  let hash = 0
+  for (const v of descriptor) {
+    hash = (hash << 5) - hash + Math.round(v * 1000)
+    hash |= 0
+  }
+  return `GST-${Math.abs(hash).toString(36).toUpperCase().padStart(8, '0')}`
+}
+
+export async function createGuest(descriptor: number[]): Promise<Guest> {
+  const id = guestIdFromDescriptor(descriptor)
+  const now = new Date().toISOString()
+  const { data, error } = await supabase.from('guests').upsert({
+    id,
+    face_descriptor: descriptor,
+    created_at: now,
+    last_seen: now,
+    upgraded_to_citizen: false,
+  }).select().maybeSingle()
+  if (error) throw error
+  return data as Guest
+}
+
+export async function getGuest(id: string): Promise<Guest | null> {
+  const { data, error } = await supabase.from('guests').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data as Guest | null
+}
+
+export async function updateGuestLastSeen(id: string): Promise<void> {
+  const { error } = await supabase.from('guests').update({ last_seen: new Date().toISOString() }).eq('id', id)
+  if (error) throw error
+}
+
+export async function upgradeGuestToCitizen(guestId: string, citizenUserId: string): Promise<void> {
+  const { error } = await supabase.from('guests').update({
+    upgraded_to_citizen: true,
+    citizen_user_id: citizenUserId,
+  }).eq('id', guestId)
+  if (error) throw error
+  
+  // Also update complaints from this guest to link to the citizen
+  const { error: complaintErr } = await supabase.from('complaints').update({
+    reporter_id: citizenUserId,
+    guest_id: null,
+    is_anonymous: false,
+  }).eq('guest_id', guestId)
+  if (complaintErr) throw complaintErr
+}
