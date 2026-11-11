@@ -1,5 +1,5 @@
 import type { Detection, Report, Role, Severity, Status, TimelineEvent, Category, DetectionStatus } from './types'
-import { supabase } from './supabaseClient'
+import { isSupabaseConfigured, supabase } from './supabaseClient'
 
 interface ComplaintRow {
   id: string
@@ -230,6 +230,17 @@ export function guestIdFromDescriptor(descriptor: number[]): string {
 export async function createGuest(descriptor: number[]): Promise<Guest> {
   const id = guestIdFromDescriptor(descriptor)
   const now = new Date().toISOString()
+  if (!isSupabaseConfigured) {
+    // Demo mode: no backend, keep the guest profile on the device.
+    return {
+      id,
+      face_descriptor: descriptor,
+      created_at: now,
+      last_seen: now,
+      upgraded_to_citizen: false,
+      citizen_user_id: null,
+    }
+  }
   const { data, error } = await supabase.from('guests').upsert({
     id,
     face_descriptor: descriptor,
@@ -253,6 +264,7 @@ export async function updateGuestLastSeen(id: string): Promise<void> {
 }
 
 export async function upgradeGuestToCitizen(guestId: string, citizenUserId: string): Promise<void> {
+  if (!isSupabaseConfigured) return
   const { error } = await supabase.from('guests').update({
     upgraded_to_citizen: true,
     citizen_user_id: citizenUserId,

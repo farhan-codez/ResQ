@@ -9,7 +9,7 @@ import { FaceScan } from '@/components/auth/FaceScan'
 import { createGuest, guestIdFromDescriptor } from '@/lib/api'
 
 export function GuestAuth() {
-  const { navigate } = useApp()
+  const { navigate, setRole } = useApp()
   const toast = useToast()
   const [step, setStep] = useState<'intro' | 'scan' | 'creating' | 'done'>('intro')
   const [guestId, setGuestId] = useState('')
@@ -21,10 +21,12 @@ export function GuestAuth() {
 
     try {
       await createGuest(descriptor)
-      // Guest session is managed by the store via localStorage fallback for now
-      // In production, this would be handled by Supabase auth
+      // Persist the guest profile locally so the session survives a reload.
+      localStorage.setItem(`resq.guest.${id}`, JSON.stringify({ faceDescriptor: descriptor, createdAt: Date.now() }))
       localStorage.setItem('resq.guest.current', id)
+      setRole('guest')
     } catch (e) {
+      console.error('Failed to create guest profile', e)
       toast({ tone: 'error', title: 'Failed to create guest profile', description: 'Please try again.' })
       setStep('intro')
       return
