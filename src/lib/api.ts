@@ -95,6 +95,9 @@ export async function fetchDetections(): Promise<Detection[]> {
     areaHa: d.area_ha,
     points: d.points as [number, number][],
     status: d.status ?? 'pending_review',
+    imageUrl: d.image_url ?? undefined,
+    source: d.source ?? undefined,
+    region: d.region ?? undefined,
   }))
 }
 

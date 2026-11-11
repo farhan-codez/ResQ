@@ -4,37 +4,23 @@
 
 FROM node:22-alpine AS base
 
-# Install dependencies for native modules
-RUN apk add --no-cache python3 make g++
-
-# Install pnpm
 RUN corepack enable pnpm
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY workers/package.json ./workers/
+COPY workers/package.json ./package.json
+RUN pnpm install --prod=false
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile --prod
+COPY workers/detection-worker.ts ./detection-worker.ts
+RUN pnpm exec tsc detection-worker.ts --esModuleInterop --module commonjs --target ES2022 --outDir ./dist
 
-# Copy worker source
-COPY workers/detection-worker.ts ./workers/
-COPY supabase/migrations ./supabase/migrations/
-
-# Build TypeScript
-RUN pnpm exec tsc workers/detection-worker.ts --esModuleInterop --module commonjs --target ES2022 --outDir ./dist
-
-# Production image
 FROM node:22-alpine AS runner
 
 WORKDIR /app
+ENV NODE_ENV=production
 
-# Copy built files
 COPY --from=base /app/dist ./dist
 COPY --from=base /app/node_modules ./node_modules
-COPY --from=base /app/package.json ./
+COPY --from=base /app/package.json ./package.json
 
-# Run worker
 CMD ["node", "dist/detection-worker.js"]

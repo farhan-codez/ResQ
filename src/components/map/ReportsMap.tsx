@@ -171,6 +171,14 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
                       <Satellite className="size-4" aria-hidden /> Sentinel-2 detection
                     </p>
                     <p className="mt-1 text-sm font-semibold text-fg">{d.name}</p>
+                    {d.imageUrl && (
+                      <img
+                        src={d.imageUrl}
+                        alt={`Satellite view of ${d.name}`}
+                        className="mt-2 h-32 w-full rounded-md border border-border object-cover"
+                        loading="lazy"
+                      />
+                    )}
                     <dl className="mt-3 grid grid-cols-3 gap-2 text-xs">
                       <div>
                         <dt className="text-fg-muted">Area</dt>

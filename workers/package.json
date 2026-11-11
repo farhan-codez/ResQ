@@ -2,17 +2,19 @@
   "name": "resq-detection-worker",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "scripts": {
     "build": "tsc detection-worker.ts --esModuleInterop --module commonjs --target ES2022 --outDir ./dist",
     "start": "node dist/detection-worker.js",
-    "dev": "tsx watch detection-worker.ts"
+    "dev": "tsx watch detection-worker.ts",
+    "demo": "tsx detection-worker.ts --demo"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.45.0",
-    "googleapis": "^140.0.0"
+    "@google/earthengine": "^1.7.52",
+    "@supabase/supabase-js": "^2.45.0"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
     "tsx": "^4.19.0",
     "typescript": "^5.7.0"
   }

@@ -40,6 +40,9 @@ export interface Detection {
   areaHa: number
   points: [number, number][]
   status: DetectionStatus
+  imageUrl?: string
+  source?: string
+  region?: string
 }
 
 /** Authority that can be dispatched to handle a report */
