@@ -62,7 +62,7 @@ export function Dashboard() {
   const [picking, setPicking] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [sheetAfterPick, setSheetAfterPick] = useState(false)
-  const [showForm, setShowForm] = useState(false)
+  const [showForm, setShowForm] = useState(isMobile ? false : true)
   const incident = route.name === 'dashboard' ? route.incident : undefined
   const focus = route.name === 'dashboard' ? route.focus : undefined
 
