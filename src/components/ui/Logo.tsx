@@ -1,18 +1,22 @@
 import { cx } from '@/lib/meta'
 
-export function LogoMark({ className, onDark }: { className?: string; onDark?: boolean }) {
+const base = import.meta.env.BASE_URL
+
+export function LogoMark({ className }: { className?: string; onDark?: boolean }) {
   return (
-    <svg viewBox="0 0 32 32" className={cx('size-8 shrink-0', className)} aria-hidden>
-      <rect width="32" height="32" rx="8" style={{ fill: onDark ? '#ffffff' : 'var(--brand)' }} />
-      <path
-        d="M16 6.5c-4.2 0-7.5 3.2-7.5 7.3 0 5.3 6.2 10.9 6.9 11.5.35.3.85.3 1.2 0 .7-.6 6.9-6.2 6.9-11.5 0-4.1-3.3-7.3-7.5-7.3Z"
-        fill="none"
-        style={{ stroke: onDark ? 'var(--nav)' : '#ffffff' }}
-        strokeWidth="2"
-        strokeLinejoin="round"
+    <picture className={cx('inline-block size-8 shrink-0', className)}>
+      <source srcSet={`${base}brand/webp/logo-64.webp 1x, ${base}brand/webp/logo-128.webp 2x`} type="image/webp" />
+      <img
+        src={`${base}brand/png/logo-64.png`}
+        srcSet={`${base}brand/png/logo-64.png 1x, ${base}brand/png/logo-128.png 2x`}
+        alt=""
+        aria-hidden
+        width={64}
+        height={64}
+        className="size-full object-contain"
+        decoding="async"
       />
-      <circle cx="16" cy="13.8" r="2.9" style={{ fill: 'var(--alert)' }} />
-    </svg>
+    </picture>
   )
 }
 
