@@ -47,7 +47,7 @@ function DetailsStep({ onNext, initial }: { onNext: (v: Details) => void; initia
 
   const nameErr = name.trim().length === 0 ? 'Enter your full name as it appears on your Ghana Card.' : name.trim().split(/\s+/).length < 2 ? 'Add your surname too.' : undefined
   const e = email.trim().toLowerCase()
-  const emailErr = !e ? 'Enter your email address.' : !/^[a-z0-9.+_-]+@gmail\.com$/.test(e) ? 'Use a Gmail address, like ama.mensah@gmail.com' : undefined
+  const emailErr = !e ? 'Enter your email address.' : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? 'Enter an email in this format: name@example.com' : undefined
 
   const pwErr = !password ? 'Create a password.' : password.length < 8 ? 'Use at least 8 characters.' : undefined
 

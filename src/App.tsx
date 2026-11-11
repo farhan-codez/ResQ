@@ -6,7 +6,7 @@ import { GuestAuth } from '@/screens/GuestAuth'
 import { GuestUpgrade } from '@/screens/GuestUpgrade'
 import { Library } from '@/screens/Library'
 import { Login } from '@/screens/Login'
-import { ReportsList } from '@/screens/ReportsList'
+import { RegulatorDashboard } from '@/screens/RegulatorDashboard'
 import { Signup } from '@/screens/Signup'
 
 function Screen() {
@@ -25,7 +25,7 @@ function Screen() {
     case 'dashboard':
       return <Dashboard />
     case 'reports':
-      return <ReportsList />
+      return <RegulatorDashboard />
     case 'dispatch':
       const { role, navigate } = useApp()
       return role === 'regulator' ? <DispatchList onClose={() => navigate({ name: 'reports' })} /> : <Login />

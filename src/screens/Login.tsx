@@ -13,7 +13,7 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabaseClient'
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function Login() {
-  const { navigate } = useApp()
+  const { navigate, setRole } = useApp()
   const toast = useToast()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,6 +21,7 @@ export function Login() {
   const [touched, setTouched] = useState({ email: false, password: false })
   const [loading, setLoading] = useState<'password' | 'google' | null>(null)
   const [authError, setAuthError] = useState(false)
+  const [authErrorMsg, setAuthErrorMsg] = useState('')
   const emailRef = useRef<HTMLInputElement>(null)
   const pwRef = useRef<HTMLInputElement>(null)
   const errRef = useRef<HTMLDivElement>(null)
@@ -33,17 +34,32 @@ export function Login() {
     if (emailErr) return emailRef.current?.focus()
     if (pwErr) return pwRef.current?.focus()
     setAuthError(false)
+    setAuthErrorMsg('')
     setLoading('password')
-    const fail = () => {
+    const fail = (msg?: string) => {
       setLoading(null)
       setAuthError(true)
+      if (msg) setAuthErrorMsg(msg)
       setTimeout(() => errRef.current?.focus(), 0)
     }
     if (isSupabaseConfigured) {
       supabase.auth
         .signInWithPassword({ email: email.trim(), password })
         .then(({ error }) => {
-          if (error) return fail()
+          if (error) {
+            // Differentiate error types
+            const msg = error.message
+            if (msg.includes('Invalid login credentials') || msg.includes('Email not confirmed') || msg.includes('Invalid email or password')) {
+              return fail('Invalid email or password. Please check and try again.')
+            }
+            if (msg.includes('User not found') || msg.includes('No user found')) {
+              return fail('No account found with this email. Create an account first.')
+            }
+            if (msg.includes('Too many requests')) {
+              return fail('Too many attempts. Please wait a moment and try again.')
+            }
+            return fail(msg || 'Sign in failed. Please try again.')
+          }
           setLoading(null)
           navigate({ name: 'dashboard' })
         })
@@ -52,8 +68,10 @@ export function Login() {
     }
     setTimeout(() => {
       setLoading(null)
-      if (password.toLowerCase() === 'wrong') return fail()
-      navigate({ name: 'dashboard' })
+      if (password.toLowerCase() === 'wrong') return fail('Invalid email or password. Please check and try again.')
+      const regulatorEmail = email.trim().toLowerCase() === 'regulator@resq.gov.gh'
+      setRole(regulatorEmail ? 'regulator' : 'citizen')
+      navigate({ name: regulatorEmail ? 'reports' : 'dashboard' })
     }, 1200)
   }
 
@@ -77,7 +95,7 @@ export function Login() {
           {authError && (
             <div ref={errRef} tabIndex={-1} role="alert" className="flex items-start gap-2 rounded-lg border border-high/40 bg-high-soft p-3 text-sm text-high-fg outline-none">
               <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-              <span>Email or password is incorrect. Try again.</span>
+              <span>{authErrorMsg || 'Email or password is incorrect. Try again.'}</span>
             </div>
           )}
           <div className="flex flex-col gap-1">
@@ -88,7 +106,7 @@ export function Login() {
               type="email"
               autoComplete="email"
               inputMode="email"
-              placeholder="name@gmail.com"
+              placeholder="name@example.com"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value)
@@ -199,6 +217,22 @@ export function Login() {
           </span>
         </Button>
         </div>
+
+        {!isSupabaseConfigured && (
+          <p className="mt-3 text-center text-xs text-fg-muted">
+            Demo regulator access:{' '}
+            <button
+              type="button"
+              onClick={() => {
+                setRole('regulator')
+                navigate({ name: 'reports' })
+              }}
+              className="cursor-pointer rounded-sm font-medium text-brand-soft-fg underline-offset-4 hover:underline"
+            >
+              open regulator desk
+            </button>
+          </p>
+        )}
 
         <p className="mt-4 text-center text-sm text-fg-muted">
           New to ResQ?{' '}

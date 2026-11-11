@@ -157,7 +157,7 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
           const detection = await api.detectSingleFace(video, options).withFaceLandmarks().withFaceDescriptor()
           if (runId !== runIdRef.current) return
           if (detection?.descriptor) {
-            const descriptor = Array.from(detection.descriptor)
+            const descriptor = Array.from(detection.descriptor) as number[]
             stopCamera()
             setState('success')
             setTimeout(() => {
