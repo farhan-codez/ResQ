@@ -9,6 +9,11 @@ type FaceApi = typeof import('@vladmandic/face-api')
 const LOCAL_MODELS = '/models'
 
 let apiPromise: Promise<FaceApi> | null = null
+/** Start downloading/initialising face detection early (e.g. on hover of the guest button). */
+export function preloadFaceScan() {
+  ensureApi().catch(() => {})
+}
+
 function ensureApi(): Promise<FaceApi> {
   if (!apiPromise) {
     apiPromise = (async () => {
@@ -18,6 +23,17 @@ function ensureApi(): Promise<FaceApi> {
         api.nets.faceLandmark68Net.loadFromUri(LOCAL_MODELS),
         api.nets.faceRecognitionNet.loadFromUri(LOCAL_MODELS),
       ])
+      // Warm-up: the first inference compiles GPU shaders (1-3s). Do it now, off the critical path.
+      try {
+        const c = document.createElement('canvas')
+        c.width = c.height = 160
+        await api
+          .detectSingleFace(c as unknown as HTMLVideoElement, new api.TinyFaceDetectorOptions({ inputSize: 160 }))
+          .withFaceLandmarks()
+          .withFaceDescriptor()
+      } catch {
+        /* warm-up is best effort */
+      }
       return api
     })().catch((e) => {
       apiPromise = null
