@@ -294,29 +294,8 @@ export function ReportForm({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <span className="text-sm font-medium text-fg">Location</span>
-        <div className={cx('flex items-start gap-3 rounded-lg border bg-surface-2 p-3', picking ? 'border-ring ring-[3px] ring-ring/25' : 'border-border')}>
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-soft-fg">
-            <MapPin className="size-5" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium text-fg">
-              {picking ? 'Choose a point on the map' : location.place}
-              {!picking && <span className="text-xs font-normal text-fg-muted">{location.source === 'detected' ? 'Auto-detected' : 'Set on map'}</span>}
-            </p>
-            <p className="tabular text-xs text-fg-muted">{formatCoords(location.lat, location.lng)}</p>
-            {onViewOnMap && (
-              <button type="button" onClick={onChangeLocation} className="-mx-1 mt-1 min-h-11 cursor-pointer rounded-md px-1 text-sm font-medium text-brand-soft-fg underline-offset-4 hover:underline md:min-h-0">
-                {picking ? 'Cancel' : 'Change location'}
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
         <Label htmlFor="r-photo" optional>
-          Photos
+          Photos (Optional)
         </Label>
         <input
           ref={fileRef}
@@ -366,7 +345,7 @@ export function ReportForm({
 
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="r-voice" optional>
-          Voice note
+          Voice note (Optional)
         </Label>
         {isRecording ? (
           <div className="flex items-center gap-3 rounded-lg border border-brand bg-brand-soft p-3">
@@ -399,6 +378,27 @@ export function ReportForm({
           </Button>
         )}
         <Hint id="r-voice-hint">Record a short message instead of typing. Up to 2 minutes.</Hint>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <span className="text-sm font-medium text-fg">Location</span>
+        <div className={cx('flex items-start gap-3 rounded-lg border bg-surface-2 p-3', picking ? 'border-ring ring-[3px] ring-ring/25' : 'border-border')}>
+          <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-soft-fg">
+            <MapPin className="size-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="flex flex-wrap items-center gap-x-2 text-sm font-medium text-fg">
+              {picking ? 'Choose a point on the map' : location.place}
+              {!picking && <span className="text-xs font-normal text-fg-muted">{location.source === 'detected' ? 'Auto-detected' : 'Set on map'}</span>}
+            </p>
+            <p className="tabular text-xs text-fg-muted">{formatCoords(location.lat, location.lng)}</p>
+            {onViewOnMap && (
+              <button type="button" onClick={onChangeLocation} className="-mx-1 mt-1 min-h-11 cursor-pointer rounded-md px-1 text-sm font-medium text-brand-soft-fg underline-offset-4 hover:underline md:min-h-0">
+                {picking ? 'Cancel' : 'Change location'}
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       <label className="flex min-h-11 cursor-pointer items-start gap-3">
