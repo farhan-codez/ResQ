@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronUp, Siren } from 'lucide-react'
+import { ChevronUp, Siren, X } from 'lucide-react'
 import { AppShell, BottomSheet } from '@/components/layout/AppShell'
 import { ReportsMap, type MapHandle } from '@/components/map/ReportsMap'
 import { ReportForm, type DraftLocation } from '@/components/report/ReportForm'
@@ -62,6 +62,7 @@ export function Dashboard() {
   const [picking, setPicking] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [sheetAfterPick, setSheetAfterPick] = useState(false)
+  const [showForm, setShowForm] = useState(false)
   const incident = route.name === 'dashboard' ? route.incident : undefined
   const focus = route.name === 'dashboard' ? route.focus : undefined
 
@@ -90,9 +91,10 @@ export function Dashboard() {
       setSheetOpen(true)
       return
     }
+    setShowForm(true)
     panelRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
     titleRef.current?.focus()
-  }, [isMobile])
+  }, [])
 
   useEffect(() => {
     if (route.name === 'dashboard' && route.focus === 'report') {
@@ -103,6 +105,7 @@ export function Dashboard() {
 
   const viewOnMap = (id: string) => {
     setSheetOpen(false)
+    setShowForm(false)
     setTimeout(() => mapRef.current?.focusReport(id), isMobile ? 250 : 0)
   }
 
@@ -135,14 +138,7 @@ export function Dashboard() {
 
   return (
     <AppShell active="map" onReport={openReport}>
-      <div className="flex h-full">
-        {!isRegulator && (
-          <aside aria-label="Report form" className="hidden w-[424px] shrink-0 p-3 md:block">
-            <div ref={panelRef} className="h-full overflow-y-auto rounded-2xl border border-border bg-surface shadow-overlay">
-              {loading ? <PanelSkeleton /> : !isMobile && form(false)}
-            </div>
-          </aside>
-        )}
+      <div className="relative flex h-full">
         <div className="relative min-w-0 flex-1">
           <ReportsMap
             ref={mapRef}
@@ -158,27 +154,31 @@ export function Dashboard() {
             compact={isMobile}
             loading={loading}
           />
-          {/* Mobile peek: collapsed state of the report bottom sheet */}
-          {!isRegulator && isMobile && !picking && (
-            <button
-              type="button"
-              onClick={() => setSheetOpen(true)}
-              className="absolute inset-x-0 bottom-0 z-[800] flex cursor-pointer flex-col items-stretch rounded-t-2xl border-t border-border bg-surface px-4 pt-2 pb-3 text-left shadow-overlay"
-              aria-label="Open report form"
+          {/* Floating report form (desktop) */}
+          {(!isRegulator && !isMobile && showForm && (
+            <div
+              ref={panelRef}
+              className="absolute top-6 right-6 z-[100] rounded-2xl border border-border bg-surface/95 shadow-lg max-w-sm w-full transform origin-top-right scale-95"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="form-title"
             >
-              <span className="mx-auto h-1 w-10 rounded-full bg-border-strong" aria-hidden />
-              <span className="mt-2 flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-lg bg-alert text-alert-fg">
-                  <Siren className="size-5" aria-hidden />
-                </span>
-                <span className="flex-1">
-                  <span className="block text-base font-medium text-fg">Report an issue</span>
-                  <span className="block truncate text-xs text-fg-muted">Your current location: {location.place}</span>
-                </span>
-                <ChevronUp className="size-5 text-fg-muted" aria-hidden />
-              </span>
-            </button>
-          )}
+              <h2 id="form-title" className="text-xl text-fg font-medium p-4 border-b border-border text-left">
+                Report an issue
+              </h2>
+              <div className="p-4">
+                {loading ? <PanelSkeleton /> : form(false)}
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowForm(false)}
+                className="absolute top-2 right-2 rounded-lg bg-surface/70 p-1 hover:bg-surface/90"
+                aria-label="Close report form"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
+          ))}
         </div>
       </div>
 
