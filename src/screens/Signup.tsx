@@ -47,7 +47,7 @@ function DetailsStep({ onNext, initial }: { onNext: (v: Details) => void; initia
 
   const nameErr = name.trim().length === 0 ? 'Enter your full name as it appears on your Ghana Card.' : name.trim().split(/\s+/).length < 2 ? 'Add your surname too.' : undefined
   const e = email.trim().toLowerCase()
-  const emailErr = !e ? 'Enter your Gmail address.' : !/^[a-z0-9.+_-]+@gmail\.com$/.test(e) ? 'Use a Gmail address, like ama.mensah@gmail.com' : undefined
+  const emailErr = !e ? 'Enter your email address.' : !/^[a-z0-9.+_-]+@gmail\.com$/.test(e) ? 'Use a Gmail address, like ama.mensah@gmail.com' : undefined
 
   const pwErr = !password ? 'Create a password.' : password.length < 8 ? 'Use at least 8 characters.' : undefined
 
@@ -79,14 +79,14 @@ function DetailsStep({ onNext, initial }: { onNext: (v: Details) => void; initia
         <FieldError id="s-name-err">{touched.name && nameErr}</FieldError>
       </div>
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="s-email">Gmail address</Label>
+        <Label htmlFor="s-email">Email</Label>
         <Input
           ref={emailRef}
           id="s-email"
           type="email"
           inputMode="email"
           autoComplete="email"
-          placeholder="name@gmail.com"
+          placeholder="name@example.com"
           value={email}
           onChange={(ev) => setEmail(ev.target.value)}
           onBlur={() => setTouched((t) => ({ ...t, email: true }))}
