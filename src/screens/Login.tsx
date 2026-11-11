@@ -60,14 +60,14 @@ export function Login() {
     <AuthLayout>
       <AuthCard>
         <div className="flex flex-col items-center text-center">
-          <Logo size="lg" />
-          <h1 className="mt-6 text-2xl text-fg">Welcome back</h1>
-          <p className="mt-1 text-sm text-fg-muted">Sign in to report and track illegal mining near you.</p>
+          <Logo size="md" />
+          <h1 className="mt-4 text-xl text-fg">Welcome back</h1>
+          <p className="mt-0.5 text-sm text-fg-muted">Sign in to report issues near you.</p>
         </div>
 
         <form
           noValidate
-          className="mt-6 flex flex-col gap-4"
+          className="mt-4 flex flex-col gap-3"
           onSubmit={(e) => {
             e.preventDefault()
             submit()
@@ -79,7 +79,7 @@ export function Login() {
               <span>Email or password is incorrect. Try again.</span>
             </div>
           )}
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1">
             <Label htmlFor="l-email">Email</Label>
             <Input
               ref={emailRef}
@@ -99,7 +99,7 @@ export function Login() {
             />
             <FieldError id="l-email-err">{touched.email && emailErr}</FieldError>
           </div>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1">
             <div className="flex items-baseline justify-between">
               <Label htmlFor="l-pw">Password</Label>
               <button
@@ -149,7 +149,7 @@ export function Login() {
           </Button>
         </form>
 
-        <div className="my-6 flex items-center gap-3 text-xs text-fg-muted" role="separator">
+        <div className="my-4 flex items-center gap-3 text-xs text-fg-muted" role="separator">
           <span className="h-px flex-1 bg-border" />
           or
           <span className="h-px flex-1 bg-border" />
@@ -158,7 +158,7 @@ export function Login() {
         <Button
           variant="secondary"
           block
-          size="lg"
+          size="md"
           loading={loading === 'google'}
           loadingText="Connecting to Google"
           disabled={loading === 'password'}
@@ -187,9 +187,9 @@ export function Login() {
         <Button
           variant="secondary"
           block
-          size="lg"
+          size="md"
           onClick={() => navigate({ name: 'guest' })}
-          className="mt-4"
+          className="mt-2"
         >
           <span className="inline-flex items-center gap-2">
             <User className="size-5" aria-hidden />
@@ -197,7 +197,7 @@ export function Login() {
           </span>
         </Button>
 
-        <p className="mt-6 text-center text-sm text-fg-muted">
+        <p className="mt-4 text-center text-sm text-fg-muted">
           New to ResQ?{' '}
           <button type="button" onClick={() => navigate({ name: 'signup' })} className="cursor-pointer rounded-sm font-medium text-brand-soft-fg underline-offset-4 hover:underline">
             Create an account
