@@ -153,3 +153,4 @@ public/favicon.png   !filter !diff !merge binary
 public/og-image.png  !filter !diff !merge binary
 public/favicons/**   !filter !diff !merge binary
 public/brand/**      !filter !diff !merge binary
+public/models/**     !filter !diff !merge binary
