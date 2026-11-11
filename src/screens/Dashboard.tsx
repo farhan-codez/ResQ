@@ -155,7 +155,7 @@ export function Dashboard() {
             loading={loading}
           />
           {/* Floating report form (desktop) */}
-          {(!isRegulator && !isMobile && showForm && (
+          {(!isRegulator && !isMobile && (
             <div
               ref={panelRef}
               className="absolute z-index-[101] left-6 z-[100] rounded-2xl border border-border bg-surface shadow-lg max-w-sm w-full transform origin-top-right scale-95"
@@ -179,6 +179,22 @@ export function Dashboard() {
               </button>
             </div>
           ))}
+          {isRegulator && !incident && (
+            <div
+              ref={panelRef}
+              className="absolute z-index-[101] left-6 top-6 rounded-2xl border border-border bg-surface shadow-lg max-w-sm w-full transform origin-top-right scale-95"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="form-title"
+            >
+              <h2 id="form-title" className="text-xl text-fg font-medium p-4 border-b border-border text-left">
+                Report an issue
+              </h2>
+              <div className="p-4">
+                <p className="text-fg-muted">Regulator workspace shown instead</p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
