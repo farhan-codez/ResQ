@@ -15,10 +15,10 @@ export type Route =
   | { name: 'reports'; incident?: string }
   | { name: 'dispatch'; alertId?: string }
 
-function parseHash(hash: string): Route {
-  const [path, query = ''] = hash.replace(/^#\/?/, '').split('?')
+function parseHash(path: string): Route {
+  const [routePath, query = ''] = path.replace(/^\//, '').split('?')
   const params = new URLSearchParams(query)
-  const parts = path.split('/').filter(Boolean)
+  const parts = routePath.split('/').filter(Boolean)
   switch (parts[0]) {
     case 'library':
       return { name: 'library' }
@@ -39,13 +39,17 @@ function parseHash(hash: string): Route {
   }
 }
 
+function parsePath(path: string): Route {
+  return parseHash(path)
+}
+
 export function routeToHash(r: Route) {
   const q = new URLSearchParams()
   if ('incident' in r && r.incident) q.set('incident', r.incident)
   if ('focus' in r && r.focus) q.set('focus', r.focus)
   if ('alertId' in r && r.alertId) q.set('alertId', r.alertId)
   const qs = q.toString()
-  return `#/${r.name}${qs ? `?${qs}` : ''}`
+  return `/${r.name}${qs ? `?${qs}` : ''}`
 }
 
 export type Theme = 'light' | 'dark'
@@ -105,9 +109,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(!isSupabaseConfigured)
 
   useEffect(() => {
-    const onHash = () => setRoute(parseHash(window.location.hash))
-    window.addEventListener('hashchange', onHash)
-    return () => window.removeEventListener('hashchange', onHash)
+    const onPath = () => setRoute(parsePath(window.location.pathname + (window.location.search || '')))
+    window.addEventListener('popstate', onPath)
+    return () => window.removeEventListener('popstate', onPath)
   }, [])
 
   useEffect(() => {
@@ -266,9 +270,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, [userId, role])
 
   const navigate = useCallback((r: Route) => {
-    const h = routeToHash(r)
-    if (window.location.hash !== h) window.location.hash = h
-    else setRoute(r)
+    const target = routeToHash(r)
+    window.history.pushState({}, '', target)
+    setRoute(parsePath(window.location.pathname + (window.location.search || '')))
   }, [])
 
   const setTheme = useCallback((t: Theme) => {
