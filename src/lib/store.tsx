@@ -91,9 +91,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash))
   const [theme, setThemeState] = useState<Theme>(() => stored<Theme>('theme', 'light'))
   const [role, setRoleState] = useState<Role>(() => {
-    // Check for existing guest session
+    // Check for existing guest session first
     const guestId = localStorage.getItem('resq.guest.current')
     if (guestId) return 'guest'
+    // Reset any stale regulator role from previous sessions
+    localStorage.removeItem('resq.role')
     return stored<Role>('role', 'citizen')
   })
   const [reports, setReports] = useState<Report[]>(isSupabaseConfigured ? [] : INITIAL_REPORTS)
