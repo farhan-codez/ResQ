@@ -6,5 +6,11 @@
   "accessibility": {
     "addBypassLinks": false,
     "ignoreReducedMotion": false
+  },
+  "icons": {
+    "icon": "/favicons/favicon-32x32.png"
+  },
+  "openGraph": {
+    "image": "/og-image.png"
   }
 }
