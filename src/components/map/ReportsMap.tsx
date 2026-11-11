@@ -25,7 +25,7 @@ interface Props {
    */
   variant?: 'regulator' | 'citizen'
   selectedId?: string
-  onViewDetails: (id: string) => void
+  onViewDetails?: (id: string) => void
   draft?: { lat: number; lng: number }
   pickMode?: boolean
   onPick?: (lat: number, lng: number) => void
@@ -216,7 +216,7 @@ export const ReportsMap = forwardRef<MapHandle, Props>(function ReportsMap(
                     <StatusChip status={r.status} />
                     <span className="ml-auto text-xs text-fg-muted">{timeAgo(r.createdAt)}</span>
                   </div>
-                  <Button size="sm" variant="secondary" block className="mt-3" onClick={() => onViewDetails(r.id)}>
+                  <Button size="sm" variant="secondary" block className="mt-3" onClick={() => onViewDetails?.(r.id)}>
                     View details
                   </Button>
                 </div>

@@ -385,7 +385,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       signOut,
       authReady,
       signedIn: isSupabaseConfigured ? !!session : true,
-      user: isSupabaseConfigured ? { name: session?.name ?? '', email: session?.email ?? '' } : { name: 'Ama Mensah', email: 'ama.mensah@gmail.com' },
+      user: isSupabaseConfigured ? { name: session?.name ?? '', email: session?.email ?? '' } : { name: '', email: '' },
     }),
     [route, navigate, theme, setTheme, role, setRole, reports, detections, dispatchAlerts, addReport, updateStatus, assignTeam, updateDispatchStatus, upgradeGuest, signOut, authReady, session],
   )

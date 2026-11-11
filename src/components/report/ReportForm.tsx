@@ -1,25 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { CircleCheck, ImagePlus, MapPin, RotateCcw, Send, CloudOff, X, Map as MapIcon, PenLine, Mic, MicOff, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { FieldError, Hint, Input, Label, Textarea, Select } from '@/components/ui/Field'
+import { FieldError, Hint, Input, Label, Textarea } from '@/components/ui/Field'
 import { SeverityChip, StatusChip } from '@/components/ui/Chips'
 import { useToast } from '@/components/ui/Toast'
-import { SEVERITY, cx, formatCoords } from '@/lib/meta'
+import { cx, formatCoords } from '@/lib/meta'
 import { newReportId } from '@/lib/api'
 import { useApp } from '@/lib/store'
-import type { Report, Severity, Category } from '@/lib/types'
-import { SeverityPicker } from './SeverityPicker'
+import type { Report } from '@/lib/types'
 
-type Field = 'title' | 'description' | 'category'
+type Field = 'title' | 'description'
 type Errors = Partial<Record<Field, string>>
 
-function validate(v: { title: string; description: string; category: Category | null }): Errors {
+function validate(v: { title: string; description: string }): Errors {
   const e: Errors = {}
   if (!v.title.trim()) e.title = 'Add a short title, like "Excavators on the Pra River".'
   else if (v.title.trim().length < 5) e.title = 'Use at least 5 characters so regulators can scan it.'
   if (!v.description.trim()) e.description = 'Describe what you saw: machines, people, water colour.'
   else if (v.description.trim().length < 20) e.description = `Add a little more detail. ${20 - v.description.trim().length} more characters.`
-  if (!v.category) e.category = 'Choose what kind of issue this is.'
   return e
 }
 
@@ -58,18 +56,16 @@ export function ReportForm({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const chunksRef = useRef<Blob[]>([])
   const timerRef = useRef<number | null>(null)
-  const [category, setCategory] = useState<Category | null>(null)
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({})
   const [submitting, setSubmitting] = useState(false)
   const [failed, setFailed] = useState(false)
   const [sent, setSent] = useState<Report | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const descRef = useRef<HTMLTextAreaElement>(null)
-  const catRef = useRef<HTMLDivElement>(null)
   const errorRef = useRef<HTMLDivElement>(null)
   const successRef = useRef<HTMLHeadingElement>(null)
 
-  const errors = validate({ title, description, category })
+  const errors = validate({ title, description })
   const show = (f: Field) => (touched[f] ? errors[f] : undefined)
   const blur = (f: Field) => setTouched((t) => ({ ...t, [f]: true }))
 
@@ -80,7 +76,6 @@ export function ReportForm({
   const reset = () => {
     setTitle('')
     setDescription('')
-    setCategory(null)
     setAnonymous(false)
     setPhotos([])
     setVoiceNote(null)
@@ -143,10 +138,9 @@ export function ReportForm({
   const formatTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
 
   const submit = () => {
-    setTouched({ title: true, description: true, category: true })
+    setTouched({ title: true, description: true })
     if (errors.title) return titleRef?.current?.focus()
     if (errors.description) return descRef.current?.focus()
-    if (errors.category) return (catRef.current?.querySelector('[tabindex="0"]') as HTMLElement | null)?.focus()
     setSubmitting(true)
     setFailed(false)
     void (async () => {
@@ -162,7 +156,7 @@ export function ReportForm({
         id,
         title: title.trim(),
         description: description.trim(),
-        category: category!,
+        category: 'other',
         severity: 'medium',
         status: 'pending',
         lat: location.lat,
@@ -297,33 +291,6 @@ export function ReportForm({
           rows={4}
         />
         {show('description') ? <FieldError id="r-desc-err">{show('description')}</FieldError> : <Hint id="r-desc-hint">What, how many people or machines, and since when.</Hint>}
-      </div>
-
-      <div className="flex flex-col gap-1.5" ref={catRef}>
-        <span id="r-cat-label" className="text-sm font-medium text-fg">
-          Category
-        </span>
-        <Select
-          id="r-cat"
-          aria-describedBy={show('category') ? 'r-cat-err' : 'r-cat-hint'}
-          value={category ?? ''}
-          onChange={(e) => setCategory((e.target.value as Category) || null)}
-          onBlur={() => blur('category')}
-          invalid={!!show('category')}
-        >
-          <option value="">Select issue type</option>
-          <option value="galamsey">Illegal mining (Galamsey)</option>
-          <option value="water_pollution">Water pollution</option>
-          <option value="medical">Medical emergency</option>
-          <option value="fire">Fire</option>
-          <option value="security">Security / Crime</option>
-          <option value="other">Other</option>
-        </Select>
-        {show('category') ? (
-          <FieldError id="r-cat-err">{show('category')}</FieldError>
-        ) : (
-          <Hint id="r-cat-hint">What kind of issue are you reporting?</Hint>
-        )}
       </div>
 
       <div className="flex flex-col gap-1.5">
