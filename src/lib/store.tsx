@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { DETECTIONS, INITIAL_REPORTS } from './data'
 import type { Detection, DispatchAlert, Report, Role, Status } from './types'
 import { supabase, isSupabaseConfigured } from './supabaseClient'
-import { fetchDetections, fetchEvents, fetchProfile, fetchReports, insertReport, setComplaintStatus, setComplaintTeam, toReport, upgradeGuestToCitizen } from './api'
+import { fetchDetections, fetchEvents, fetchProfile, fetchReports, insertReport, setComplaintStatus, setComplaintTeam, setDetectionStatus as apiSetDetectionStatus, toReport, upgradeGuestToCitizen } from './api'
 import { createDispatchAlerts, fetchAlertsForReport, fetchAllDispatchAlerts } from './dispatch'
 
 export type Route =
@@ -64,6 +64,7 @@ interface AppState {
   addReport: (r: Report, photoFiles?: File[], voiceNote?: Blob) => Promise<void>
   updateStatus: (id: string, status: Status) => Promise<void>
   assignTeam: (id: string, team: string) => Promise<void>
+  setDetectionStatus: (id: string, status: Detection['status']) => Promise<void>
   updateDispatchStatus: (id: string, status: DispatchAlert['status']) => Promise<void>
   upgradeGuest: (citizenUserId: string) => Promise<void>
   signOut: () => Promise<void>
@@ -338,6 +339,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     )
   }, [])
 
+  const setDetectionStatus = useCallback(async (id: string, status: Detection['status']) => {
+    if (isSupabaseConfigured) {
+      await apiSetDetectionStatus(id, status)
+    }
+    setDetections((prev) => prev.map((d) => (d.id === id ? { ...d, status } : d)))
+  }, [])
+
   const updateDispatchStatus = useCallback(async (id: string, status: DispatchAlert['status']) => {
     if (!isSupabaseConfigured) return
     await supabase.from('dispatch_alerts').update({ status }).eq('id', id)
@@ -380,6 +388,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addReport,
       updateStatus,
       assignTeam,
+      setDetectionStatus,
       updateDispatchStatus,
       upgradeGuest,
       signOut,
@@ -390,7 +399,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         email: session?.email ?? '',
       },
     }),
-    [route, navigate, theme, setTheme, role, setRole, reports, detections, dispatchAlerts, addReport, updateStatus, assignTeam, updateDispatchStatus, upgradeGuest, signOut, authReady, session],
+    [route, navigate, theme, setTheme, role, setRole, reports, detections, dispatchAlerts, addReport, updateStatus, assignTeam, setDetectionStatus, updateDispatchStatus, upgradeGuest, signOut, authReady, session],
   )
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>

@@ -292,12 +292,12 @@ function blob(lat: number, lng: number, rLat: number, rLng: number, seed: number
 }
 
 export const DETECTIONS: Detection[] = [
-  { id: 'S2-0912', name: 'Pra River corridor', detectedAt: now - 3 * D, confidence: 0.91, areaHa: 182.4, points: blob(5.7, -1.5, 0.13, 0.05, 1, 0.6), status: 'pending_review' },
-  { id: 'S2-0907', name: 'Offin River, Dunkwa', detectedAt: now - 5 * D, confidence: 0.88, areaHa: 146.1, points: blob(6.06, -1.76, 0.14, 0.045, 2, 0.3), status: 'pending_review' },
-  { id: 'S2-0899', name: 'Ankobra floodplain', detectedAt: now - 8 * D, confidence: 0.84, areaHa: 97.8, points: blob(5.5, -2.2, 0.11, 0.045, 3, -0.4), status: 'pending_review' },
-  { id: 'S2-0894', name: 'Birim basin, Kyebi', detectedAt: now - 9 * D, confidence: 0.79, areaHa: 64.3, points: blob(6.08, -0.66, 0.08, 0.06, 4, 0.9), status: 'pending_review' },
-  { id: 'S2-0881', name: 'Tano River, Asankragwa', detectedAt: now - 12 * D, confidence: 0.86, areaHa: 121.7, points: blob(5.92, -2.38, 0.12, 0.05, 5, -0.2), status: 'pending_review' },
-  { id: 'S2-0876', name: 'Amansie West', detectedAt: now - 14 * D, confidence: 0.73, areaHa: 58.9, points: blob(6.36, -1.95, 0.07, 0.06, 6, 0.1), status: 'pending_review' },
+  { id: 'S2-0912', name: 'Pra River corridor', detectedAt: now - 3 * D, confidence: 0.91, areaHa: 182.4, points: blob(5.7, -1.5, 0.13, 0.05, 1, 0.6), status: 'pending_review', region: 'Western Region', source: 'Sentinel-2' },
+  { id: 'S2-0907', name: 'Offin River, Dunkwa', detectedAt: now - 5 * D, confidence: 0.88, areaHa: 146.1, points: blob(6.06, -1.76, 0.14, 0.045, 2, 0.3), status: 'pending_review', region: 'Central Region', source: 'Sentinel-2' },
+  { id: 'S2-0899', name: 'Ankobra floodplain', detectedAt: now - 8 * D, confidence: 0.84, areaHa: 97.8, points: blob(5.5, -2.2, 0.11, 0.045, 3, -0.4), status: 'pending_review', region: 'Western Region', source: 'Sentinel-2' },
+  { id: 'S2-0894', name: 'Birim basin, Kyebi', detectedAt: now - 9 * D, confidence: 0.79, areaHa: 64.3, points: blob(6.08, -0.66, 0.08, 0.06, 4, 0.9), status: 'pending_review', region: 'Eastern Region', source: 'Sentinel-2' },
+  { id: 'S2-0881', name: 'Tano River, Asankragwa', detectedAt: now - 12 * D, confidence: 0.86, areaHa: 121.7, points: blob(5.92, -2.38, 0.12, 0.05, 5, -0.2), status: 'pending_review', region: 'Western North Region', source: 'Sentinel-2' },
+  { id: 'S2-0876', name: 'Amansie West', detectedAt: now - 14 * D, confidence: 0.73, areaHa: 58.9, points: blob(6.36, -1.95, 0.07, 0.06, 6, 0.1), status: 'pending_review', region: 'Ashanti Region', source: 'Sentinel-2' },
 ]
 
 export const DEFAULT_LOCATION = { lat: 6.1652, lng: -0.5518, place: 'Kyebi, Eastern Region' }

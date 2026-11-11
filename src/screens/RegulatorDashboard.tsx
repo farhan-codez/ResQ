@@ -12,6 +12,8 @@ import type { Status } from '@/lib/types'
 import { ReportsMap, type MapHandle } from '@/components/map/ReportsMap'
 import { IncidentDetail } from '@/components/report/IncidentDetail'
 import { AppShell } from '@/components/layout/AppShell'
+import { SatelliteDetectionsPanel } from '@/components/regulator/SatelliteDetectionsPanel'
+import { useToast } from '@/components/ui/Toast'
 
 const dotTone: Record<Status, string> = {
   pending: 'bg-pending-fg',
@@ -98,7 +100,8 @@ function ReportRow({ report, onClick, onStatusChange, onAssignTeam }: { report: 
 }
 
 export function RegulatorDashboard() {
-  const { reports, role, navigate, updateStatus, assignTeam, dispatchAlerts } = useApp()
+  const { reports, detections, role, navigate, updateStatus, assignTeam, setDetectionStatus } = useApp()
+  const toast = useToast()
   const isRegulator = role === 'regulator'
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -106,7 +109,7 @@ export function RegulatorDashboard() {
   const [severityFilter, setSeverityFilter] = useState<string>('all')
   const [regionFilter, setRegionFilter] = useState<string>('all')
   const [selectedReport, setSelectedReport] = useState<any | null>(null)
-  const [showMap, setShowMap] = useState(false)
+  const [activeTab, setActiveTab] = useState<'reports' | 'detections'>('reports')
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 300)
@@ -125,12 +128,24 @@ export function RegulatorDashboard() {
   // Get unique regions for filter
   const regions = [...new Set(reports.map((r) => r.region))].sort()
 
+  const pendingDetections = detections.filter((d) => d.status === 'pending_review')
+
   const handleStatusChange = async (id: string, status: any) => {
     await updateStatus(id, status)
   }
 
   const handleAssignTeam = async (id: string, team: string) => {
     await assignTeam(id, team)
+  }
+
+  const handleConfirmDetection = async (detectionId: string) => {
+    await setDetectionStatus(detectionId, 'confirmed')
+    toast({ tone: 'success', title: 'Lead confirmed', description: 'Marked for field follow-up.' })
+  }
+
+  const handleDismissDetection = async (detectionId: string) => {
+    await setDetectionStatus(detectionId, 'dismissed')
+    toast({ tone: 'info', title: 'Lead dismissed', description: 'Removed from the review queue.' })
   }
 
   const viewReport = (report: any) => {
@@ -195,80 +210,113 @@ export function RegulatorDashboard() {
                 <option key={r} value={r}>{r}</option>
               ))}
             </Select>
+            <div className="ml-2 flex items-center gap-1 rounded-lg border border-border bg-surface p-1">
+              <Button
+                variant={activeTab === 'reports' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('reports')}
+              >
+                Reports
+              </Button>
+              <Button
+                variant={activeTab === 'detections' ? 'primary' : 'ghost'}
+                size="sm"
+                onClick={() => setActiveTab('detections')}
+              >
+                Satellite
+                {pendingDetections.length > 0 && (
+                  <span className="ml-1 rounded-full bg-alert-fg px-1.5 text-[10px] font-semibold text-white">
+                    {pendingDetections.length}
+                  </span>
+                )}
+              </Button>
+            </div>
           </div>
         </header>
 
         <div className="flex-1 flex overflow-hidden">
-          {/* Reports Table */}
-          <div className="flex-1 overflow-hidden">
-            {loading ? (
-              <div className="flex h-full items-center justify-center">
-                <div className="animate-spin size-8 border-2 border-brand border-t-transparent rounded-full" />
-              </div>
-            ) : (
-              <div className="h-full overflow-auto">
-                <table className="w-full text-sm" role="table">
-                  <thead className="sticky top-0 bg-surface/80 backdrop-blur-sm border-b border-border">
-                    <tr className="text-left text-xs font-medium text-fg-muted">
-                      <th className="px-3 py-2.5">Report</th>
-                      <th className="px-3 py-2.5 w-48">Team / Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredReports.length === 0 ? (
-                      <tr>
-                        <td colSpan={2} className="px-3 py-12 text-center text-fg-muted">
-                          No reports match your filters.
-                        </td>
+          {activeTab === 'detections' ? (
+            <div className="flex-1 overflow-hidden">
+              <SatelliteDetectionsPanel
+                detections={detections}
+                onConfirm={(d) => handleConfirmDetection(d.id)}
+                onDismiss={handleDismissDetection}
+              />
+            </div>
+          ) : (
+            <>
+            {/* Reports Table */}
+            <div className="flex-1 overflow-hidden">
+              {loading ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="animate-spin size-8 border-2 border-brand border-t-transparent rounded-full" />
+                </div>
+              ) : (
+                <div className="h-full overflow-auto">
+                  <table className="w-full text-sm" role="table">
+                    <thead className="sticky top-0 bg-surface/80 backdrop-blur-sm border-b border-border">
+                      <tr className="text-left text-xs font-medium text-fg-muted">
+                        <th className="px-3 py-2.5">Report</th>
+                        <th className="px-3 py-2.5 w-48">Team / Action</th>
                       </tr>
-                    ) : (
-                      filteredReports.map((r) => (
-                        <ReportRow
-                          key={r.id}
-                          report={r}
-                          onClick={() => viewReport(r)}
-                          onStatusChange={handleStatusChange}
-                          onAssignTeam={handleAssignTeam}
-                        />
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-
-          {/* Side Panel - Report Detail or Map */}
-          <div className="w-96 md:w-[400px] border-l border-border bg-surface flex flex-col">
-            {selectedReport ? (
-              <div className="flex-1 flex flex-col overflow-hidden">
-                <div className="flex h-12 items-center justify-between border-b border-border px-4">
-                  <h3 className="font-medium text-fg">Report Detail</h3>
-                  <button onClick={closeDetail} className="text-fg-muted hover:text-fg">✕</button>
+                    </thead>
+                    <tbody>
+                      {filteredReports.length === 0 ? (
+                        <tr>
+                          <td colSpan={2} className="px-3 py-12 text-center text-fg-muted">
+                            No reports match your filters.
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredReports.map((r) => (
+                          <ReportRow
+                            key={r.id}
+                            report={r}
+                            onClick={() => viewReport(r)}
+                            onStatusChange={handleStatusChange}
+                            onAssignTeam={handleAssignTeam}
+                          />
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
-                <div className="flex-1 overflow-y-auto p-4">
-                  <IncidentDetail
-                    id={selectedReport.id}
-                    onClose={closeDetail}
-                    onShowOnMap={() => {}}
-                  />
+              )}
+            </div>
+  
+            {/* Side Panel - Report Detail or Map */}
+            <div className="w-96 md:w-[400px] border-l border-border bg-surface flex flex-col">
+              {selectedReport ? (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <div className="flex h-12 items-center justify-between border-b border-border px-4">
+                    <h3 className="font-medium text-fg">Report Detail</h3>
+                    <button onClick={closeDetail} className="text-fg-muted hover:text-fg">✕</button>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-4">
+                    <IncidentDetail
+                      id={selectedReport.id}
+                      onClose={closeDetail}
+                      onShowOnMap={() => {}}
+                    />
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div className="flex-1 flex flex-col">
-                <div className="flex h-12 items-center justify-between border-b border-border px-4">
-                  <h3 className="font-medium text-fg">Live Map</h3>
+              ) : (
+                <div className="flex-1 flex flex-col">
+                  <div className="flex h-12 items-center justify-between border-b border-border px-4">
+                    <h3 className="font-medium text-fg">Live Map</h3>
+                  </div>
+                  <div className="flex-1 relative">
+                    <ReportsMap
+                      variant="regulator"
+                      reports={reports}
+                      compact={false}
+                    />
+                  </div>
                 </div>
-                <div className="flex-1 relative">
-                  <ReportsMap
-                    variant="regulator"
-                    reports={reports}
-                    compact={false}
-                  />
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+            </>
+          )}
         </div>
       </div>
     </AppShell>
