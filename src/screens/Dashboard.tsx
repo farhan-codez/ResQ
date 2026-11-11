@@ -137,8 +137,10 @@ export function Dashboard() {
     <AppShell active="map" onReport={openReport}>
       <div className="flex h-full">
         {!isRegulator && (
-          <aside ref={panelRef} aria-label="Report form" className="hidden w-[400px] shrink-0 overflow-y-auto border-r border-border bg-surface md:block">
-            {loading ? <PanelSkeleton /> : !isMobile && form(false)}
+          <aside aria-label="Report form" className="hidden w-[424px] shrink-0 p-3 md:block">
+            <div ref={panelRef} className="h-full overflow-y-auto rounded-2xl border border-border bg-surface shadow-overlay">
+              {loading ? <PanelSkeleton /> : !isMobile && form(false)}
+            </div>
           </aside>
         )}
         <div className="relative min-w-0 flex-1">
