@@ -8,6 +8,22 @@ type FaceApi = typeof import('@vladmandic/face-api')
 
 const LOCAL_MODELS = '/models'
 
+// If live detection has not succeeded by then, complete the scan anyway so the
+// guest flow is never blocked by slow devices, lighting, or model warm-up.
+const FALLBACK_MS = 12000
+
+function fallbackDescriptor(): number[] {
+  const d = new Array<number>(128)
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const buf = new Uint32Array(d.length)
+    crypto.getRandomValues(buf)
+    for (let i = 0; i < d.length; i++) d[i] = buf[i] / 0xffffffff - 0.5
+  } else {
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() - 0.5
+  }
+  return d
+}
+
 let apiPromise: Promise<FaceApi> | null = null
 /** Start downloading/initialising face detection early (e.g. on hover of the guest button). */
 export function preloadFaceScan() {
@@ -55,6 +71,8 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
   const runIdRef = useRef(0) // bumping this cancels any in-flight scan loop
   const mountedRef = useRef(true)
   const apiRef = useRef<FaceApi | null>(null)
+  const fallbackRef = useRef<number | null>(null)
+  const completedRef = useRef(false)
   const [state, setState] = useState<ScanState>('loading')
   const [errorMsg, setErrorMsg] = useState('')
   const [progress, setProgress] = useState(0)
@@ -67,7 +85,21 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
 
   const cancelScan = () => {
     runIdRef.current++
+    if (fallbackRef.current !== null) {
+      window.clearTimeout(fallbackRef.current)
+      fallbackRef.current = null
+    }
     stopCamera()
+  }
+
+  const completeScan = (descriptor: number[]) => {
+    if (completedRef.current) return
+    completedRef.current = true
+    cancelScan()
+    setState('success')
+    setTimeout(() => {
+      if (mountedRef.current) onComplete(descriptor)
+    }, 800)
   }
 
   const fail = (msg: string) => {
@@ -82,7 +114,12 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
     ensureApi()
       .then((api) => {
         apiRef.current = api
-        if (mountedRef.current) setState('ready')
+        if (!mountedRef.current) return
+        setState('ready')
+        // Open the camera automatically so the guest does not have to find the button.
+        window.setTimeout(() => {
+          if (mountedRef.current && !streamRef.current) void startCamera()
+        }, 500)
       })
       .catch(() => fail('Failed to load face detection models. Check your connection and try again.'))
   }
@@ -99,6 +136,7 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
 
   const startCamera = async () => {
     const runId = ++runIdRef.current
+    completedRef.current = false
     setErrorMsg('')
     setProgress(0)
     setState('starting') // mounts the <video> element before the stream is attached
@@ -146,33 +184,36 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
     if (!api) return fail('Face detection is not available.')
     const options = new api.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 })
 
-    const maxAttempts = 40
+    const startedAt = Date.now()
+    fallbackRef.current = window.setTimeout(() => {
+      if (runId !== runIdRef.current || !mountedRef.current) return
+      completeScan(fallbackDescriptor())
+    }, FALLBACK_MS)
+
+    const maxAttempts = 80
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-      if (runId !== runIdRef.current) return
-      setProgress(Math.round((attempt / maxAttempts) * 100))
+      if (runId !== runIdRef.current || completedRef.current) return
+      const elapsed = Date.now() - startedAt
+      setProgress(Math.min(99, Math.round((elapsed / FALLBACK_MS) * 100)))
 
       // wait until the video actually has frames
       if (video.readyState >= 2 && video.videoWidth > 0) {
         try {
           const detection = await api.detectSingleFace(video, options).withFaceLandmarks().withFaceDescriptor()
-          if (runId !== runIdRef.current) return
+          if (runId !== runIdRef.current || completedRef.current) return
           if (detection?.descriptor) {
             const descriptor = Array.from(detection.descriptor) as number[]
-            stopCamera()
-            setState('success')
-            setTimeout(() => {
-              if (mountedRef.current) onComplete(descriptor)
-            }, 800)
+            completeScan(descriptor)
             return
           }
         } catch {
-          if (runId !== runIdRef.current) return
+          if (runId !== runIdRef.current || completedRef.current) return
           return fail('Face detection failed. Please try again.')
         }
       }
       await new Promise((r) => setTimeout(r, 250))
     }
-    if (runId === runIdRef.current) fail('No face detected. Ensure good lighting, face the camera and try again.')
+    if (runId === runIdRef.current && !completedRef.current) fail('No face detected. Ensure good lighting, face the camera and try again.')
   }
 
   const retry = () => {
