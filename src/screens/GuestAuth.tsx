@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { User, Shield, AlertCircle, Loader2 } from 'lucide-react'
 import { AuthCard, AuthLayout } from '@/components/layout/AuthLayout'
 import { Button } from '@/components/ui/Button'
 import { Logo } from '@/components/ui/Logo'
 import { useToast } from '@/components/ui/Toast'
 import { useApp } from '@/lib/store'
-import { FaceScan, preloadFaceScan } from '@/components/auth/FaceScan'
+import { FaceScan } from '@/components/auth/FaceScan'
 import { createGuest, guestIdFromDescriptor } from '@/lib/api'
 
 export function GuestAuth() {
@@ -13,11 +13,6 @@ export function GuestAuth() {
   const toast = useToast()
   const [step, setStep] = useState<'intro' | 'scan' | 'creating' | 'done'>('intro')
   const [guestId, setGuestId] = useState('')
-
-  // Download models + warm up while the user reads the intro
-  useEffect(() => {
-    preloadFaceScan()
-  }, [])
 
   const handleScanComplete = async (descriptor: number[]) => {
     setStep('creating')

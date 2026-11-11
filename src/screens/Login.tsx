@@ -1,5 +1,4 @@
 import { useRef, useState } from 'react'
-import { preloadFaceScan } from '@/components/auth/FaceScan'
 import { CircleAlert, Eye, EyeOff, User } from 'lucide-react'
 import { AuthCard, AuthLayout } from '@/components/layout/AuthLayout'
 import { Button } from '@/components/ui/Button'
@@ -203,7 +202,6 @@ export function Login() {
           </span>
         </Button>
 
-        <div onPointerEnter={preloadFaceScan} onFocus={preloadFaceScan} onTouchStart={preloadFaceScan}>
         <Button
           variant="secondary"
           block
@@ -216,7 +214,6 @@ export function Login() {
             Continue as Guest
           </span>
         </Button>
-        </div>
 
         {!isSupabaseConfigured && (
           <p className="mt-3 text-center text-xs text-fg-muted">

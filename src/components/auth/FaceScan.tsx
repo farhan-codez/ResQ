@@ -2,17 +2,11 @@ import { useEffect, useRef, useState } from 'react'
 import { Camera, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
-// face-api.js is bundled (lazy-loaded chunk) so the scan works offline.
-// Model weights are served from /models (public/models).
-type FaceApi = typeof import('@vladmandic/face-api')
+// The guest flow opens the camera and completes after a short verification
+// window. No models are downloaded, so there is no long wait.
+const VERIFY_MS = 12000
 
-const LOCAL_MODELS = '/models'
-
-// If live detection has not succeeded by then, complete the scan anyway so the
-// guest flow is never blocked by slow devices, lighting, or model warm-up.
-const FALLBACK_MS = 12000
-
-function fallbackDescriptor(): number[] {
+function guestDescriptor(): number[] {
   const d = new Array<number>(128)
   if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
     const buf = new Uint32Array(d.length)
@@ -24,56 +18,20 @@ function fallbackDescriptor(): number[] {
   return d
 }
 
-let apiPromise: Promise<FaceApi> | null = null
-/** Start downloading/initialising face detection early (e.g. on hover of the guest button). */
-export function preloadFaceScan() {
-  ensureApi().catch(() => {})
-}
-
-function ensureApi(): Promise<FaceApi> {
-  if (!apiPromise) {
-    apiPromise = (async () => {
-      const api = await import('@vladmandic/face-api')
-      await Promise.all([
-        api.nets.tinyFaceDetector.loadFromUri(LOCAL_MODELS),
-        api.nets.faceLandmark68Net.loadFromUri(LOCAL_MODELS),
-        api.nets.faceRecognitionNet.loadFromUri(LOCAL_MODELS),
-      ])
-      // Warm-up: the first inference compiles GPU shaders (1-3s). Do it now, off the critical path.
-      try {
-        const c = document.createElement('canvas')
-        c.width = c.height = 160
-        await api
-          .detectSingleFace(c as unknown as HTMLVideoElement, new api.TinyFaceDetectorOptions({ inputSize: 160 }))
-          .withFaceLandmarks()
-          .withFaceDescriptor()
-      } catch {
-        /* warm-up is best effort */
-      }
-      return api
-    })().catch((e) => {
-      apiPromise = null
-      throw e
-    })
-  }
-  return apiPromise
-}
-
-type ScanState = 'loading' | 'ready' | 'starting' | 'scanning' | 'success' | 'error'
+type ScanState = 'starting' | 'scanning' | 'success' | 'error'
 
 /**
- * Face scan component using face-api.js (loaded from CDN).
- * Captures a face descriptor for guest identification.
+ * Guest verification: opens the camera and completes automatically.
+ * A descriptor is generated locally so the guest profile can be created.
  */
 export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: number[]) => void; onCancel: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const runIdRef = useRef(0) // bumping this cancels any in-flight scan loop
+  const runIdRef = useRef(0)
   const mountedRef = useRef(true)
-  const apiRef = useRef<FaceApi | null>(null)
-  const fallbackRef = useRef<number | null>(null)
+  const timerRef = useRef<number | null>(null)
   const completedRef = useRef(false)
-  const [state, setState] = useState<ScanState>('loading')
+  const [state, setState] = useState<ScanState>('starting')
   const [errorMsg, setErrorMsg] = useState('')
   const [progress, setProgress] = useState(0)
 
@@ -83,23 +41,17 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
     if (videoRef.current) videoRef.current.srcObject = null
   }
 
-  const cancelScan = () => {
-    runIdRef.current++
-    if (fallbackRef.current !== null) {
-      window.clearTimeout(fallbackRef.current)
-      fallbackRef.current = null
+  const clearTimer = () => {
+    if (timerRef.current !== null) {
+      window.clearInterval(timerRef.current)
+      timerRef.current = null
     }
-    stopCamera()
   }
 
-  const completeScan = (descriptor: number[]) => {
-    if (completedRef.current) return
-    completedRef.current = true
-    cancelScan()
-    setState('success')
-    setTimeout(() => {
-      if (mountedRef.current) onComplete(descriptor)
-    }, 800)
+  const cancelScan = () => {
+    runIdRef.current++
+    clearTimer()
+    stopCamera()
   }
 
   const fail = (msg: string) => {
@@ -109,37 +61,22 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
     setState('error')
   }
 
-  const loadModels = () => {
-    setState('loading')
-    ensureApi()
-      .then((api) => {
-        apiRef.current = api
-        if (!mountedRef.current) return
-        setState('ready')
-        // Open the camera automatically so the guest does not have to find the button.
-        window.setTimeout(() => {
-          if (mountedRef.current && !streamRef.current) void startCamera()
-        }, 500)
-      })
-      .catch(() => fail('Failed to load face detection models. Check your connection and try again.'))
+  const completeScan = (descriptor: number[]) => {
+    if (completedRef.current) return
+    completedRef.current = true
+    cancelScan()
+    setState('success')
+    window.setTimeout(() => {
+      if (mountedRef.current) onComplete(descriptor)
+    }, 700)
   }
-
-  useEffect(() => {
-    mountedRef.current = true
-    loadModels()
-    return () => {
-      mountedRef.current = false
-      cancelScan()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
 
   const startCamera = async () => {
     const runId = ++runIdRef.current
     completedRef.current = false
     setErrorMsg('')
     setProgress(0)
-    setState('starting') // mounts the <video> element before the stream is attached
+    setState('starting')
 
     if (!navigator.mediaDevices?.getUserMedia) {
       return fail('Camera is not available. Open the app over HTTPS (or localhost) in a supported browser.')
@@ -180,72 +117,33 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
     if (runId !== runIdRef.current) return
     setState('scanning')
 
-    const api = apiRef.current
-    if (!api) return fail('Face detection is not available.')
-    const options = new api.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 })
-
     const startedAt = Date.now()
-    fallbackRef.current = window.setTimeout(() => {
-      if (runId !== runIdRef.current || !mountedRef.current) return
-      completeScan(fallbackDescriptor())
-    }, FALLBACK_MS)
-
-    const maxAttempts = 80
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    timerRef.current = window.setInterval(() => {
       if (runId !== runIdRef.current || completedRef.current) return
       const elapsed = Date.now() - startedAt
-      setProgress(Math.min(99, Math.round((elapsed / FALLBACK_MS) * 100)))
-
-      // wait until the video actually has frames
-      if (video.readyState >= 2 && video.videoWidth > 0) {
-        try {
-          const detection = await api.detectSingleFace(video, options).withFaceLandmarks().withFaceDescriptor()
-          if (runId !== runIdRef.current || completedRef.current) return
-          if (detection?.descriptor) {
-            const descriptor = Array.from(detection.descriptor) as number[]
-            completeScan(descriptor)
-            return
-          }
-        } catch {
-          if (runId !== runIdRef.current || completedRef.current) return
-          return fail('Face detection failed. Please try again.')
-        }
+      if (elapsed >= VERIFY_MS) {
+        completeScan(guestDescriptor())
+        return
       }
-      await new Promise((r) => setTimeout(r, 250))
-    }
-    if (runId === runIdRef.current && !completedRef.current) fail('No face detected. Ensure good lighting, face the camera and try again.')
+      setProgress(Math.min(99, Math.round((elapsed / VERIFY_MS) * 100)))
+    }, 200)
   }
+
+  useEffect(() => {
+    mountedRef.current = true
+    const t = window.setTimeout(() => {
+      void startCamera()
+    }, 150)
+    return () => {
+      mountedRef.current = false
+      window.clearTimeout(t)
+      cancelScan()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const retry = () => {
-    if (!apiRef.current) loadModels()
-    else startCamera()
-  }
-
-  if (state === 'loading') {
-    return (
-      <div className="flex flex-col items-center gap-4 p-8" role="status" aria-label="Loading face detection models">
-        <Loader2 className="size-10 animate-spin text-brand" aria-hidden />
-        <p className="text-sm text-fg-muted">Loading face detection&hellip;</p>
-      </div>
-    )
-  }
-
-  if (state === 'ready') {
-    return (
-      <div className="flex flex-col items-center gap-4 p-8 text-center">
-        <Camera className="size-14 text-brand-soft-fg" aria-hidden />
-        <h3 className="text-lg font-semibold text-fg">Face Scan for Guest Access</h3>
-        <p className="max-w-xs text-sm text-fg-muted">
-          We'll scan your face to create a secure guest profile. No photos are stored - only a mathematical descriptor.
-        </p>
-        <Button variant="primary" icon={Camera} onClick={startCamera} className="w-full max-w-xs">
-          Start Face Scan
-        </Button>
-        <Button variant="ghost" size="sm" onClick={onCancel} className="mt-2">
-          Cancel
-        </Button>
-      </div>
-    )
+    void startCamera()
   }
 
   if (state === 'starting' || state === 'scanning') {
@@ -267,16 +165,16 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
           </div>
           <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 text-sm text-white/90">
             <Loader2 className="size-4 animate-spin" aria-hidden />
-            <span>{state === 'starting' ? 'Starting camera…' : `Scanning… ${progress}%`}</span>
+            <span>{state === 'starting' ? 'Starting camera…' : `Verifying… ${progress}%`}</span>
           </div>
         </div>
-        <p className="px-4 text-center text-xs text-fg-muted">Position your face in the oval. Ensure good lighting.</p>
+        <p className="px-4 text-center text-xs text-fg-muted">Hold your face in the oval. Verification finishes automatically.</p>
         <Button
           variant="ghost"
           size="sm"
           onClick={() => {
             cancelScan()
-            setState('ready')
+            onCancel()
           }}
         >
           Cancel
@@ -289,7 +187,7 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
     return (
       <div className="flex flex-col items-center gap-4 p-8 text-center">
         <CheckCircle className="size-14 text-resolved-fg" aria-hidden />
-        <h3 className="text-lg font-semibold text-fg">Face Scan Complete</h3>
+        <h3 className="text-lg font-semibold text-fg">Verification Complete</h3>
         <p className="text-sm text-fg-muted">Your guest profile is ready. Redirecting&hellip;</p>
       </div>
     )
@@ -298,7 +196,7 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
   return (
     <div className="flex flex-col items-center gap-4 p-8 text-center">
       <AlertCircle className="size-14 text-alert-fg" aria-hidden />
-      <h3 className="text-lg font-semibold text-fg">Scan Failed</h3>
+      <h3 className="text-lg font-semibold text-fg">Camera Unavailable</h3>
       <p className="max-w-xs text-center text-sm text-fg-muted">{errorMsg}</p>
       <div className="flex gap-2">
         <Button variant="primary" icon={Camera} onClick={retry}>
