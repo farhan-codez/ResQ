@@ -121,7 +121,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const guestData = localStorage.getItem(`resq.guest.${guestId}`)
         if (guestData) {
           const { faceDescriptor, createdAt } = JSON.parse(guestData)
-          setSession({ id: guestId, email: '', name: `Guest ${guestId.slice(-4)}` })
+          setSession({ id: guestId, email: '', name: 'Guest' })
           setRoleState('guest')
         }
       }
@@ -138,7 +138,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const guestData = localStorage.getItem(`resq.guest.${guestId}`)
           if (guestData) {
             const { faceDescriptor, createdAt } = JSON.parse(guestData)
-            setSession({ id: guestId, email: '', name: `Guest ${guestId.slice(-4)}` })
+            setSession({ id: guestId, email: '', name: 'Guest' })
             setRoleState('guest')
             setAuthReady(true)
             return
@@ -385,7 +385,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       signOut,
       authReady,
       signedIn: isSupabaseConfigured ? !!session : true,
-      user: isSupabaseConfigured ? { name: session?.name ?? '', email: session?.email ?? '' } : { name: '', email: '' },
+      user: {
+        name: session?.name || (role === 'guest' ? 'Guest' : role === 'regulator' ? 'Regulator' : 'Citizen'),
+        email: session?.email ?? '',
+      },
     }),
     [route, navigate, theme, setTheme, role, setRole, reports, detections, dispatchAlerts, addReport, updateStatus, assignTeam, updateDispatchStatus, upgradeGuest, signOut, authReady, session],
   )
