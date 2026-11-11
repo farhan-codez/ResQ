@@ -11,6 +11,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.45.0
         version: 2.119.0
+      '@vladmandic/face-api':
+        specifier: ^1.7.12
+        version: 1.7.15
       leaflet:
         specifier: ^1.9.4
         version: 1.9.4
@@ -401,6 +404,10 @@ packages:
         optional: true
       babel-plugin-react-compiler:
         optional: true
+
+  '@vladmandic/face-api@1.7.15':
+    resolution: {integrity: sha512-WDMmK3CfNLo8jylWqMoQgf4nIst3M0fzx1dnac96wv/dvMTN4DxC/Pq1DGtduDk1lktCamQ3MIDXFnvrdHTXDw==}
+    engines: {node: '>=14.0.0'}
 
   csstype@3.2.3:
     resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
@@ -895,6 +902,8 @@ snapshots:
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.7
       vite: 8.0.5(@types/node@22.19.17)(jiti@2.6.1)
+
+  '@vladmandic/face-api@1.7.15': {}
 
   csstype@3.2.3: {}
 
