@@ -158,7 +158,7 @@ export function Dashboard() {
           {(!isRegulator && !isMobile && (
             <div
               ref={panelRef}
-              className="absolute z-index-[101] left-6 z-[100] rounded-2xl border border-border bg-surface shadow-lg max-w-sm w-full transform origin-top-right scale-95"
+              className="absolute left-6 top-6 z-[100] max-h-[calc(100%-3rem)] w-full max-w-sm origin-top-right scale-95 transform overflow-y-auto rounded-2xl border border-border bg-surface shadow-lg"
               role="dialog"
               aria-modal="true"
               aria-labelledby="form-title"
