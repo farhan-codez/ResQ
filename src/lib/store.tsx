@@ -92,7 +92,11 @@ function stored<T extends string>(key: string, fallback: T): T {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash))
+  // Initial route: prefer the hash (legacy `#/…` links), otherwise parse the
+  // real path URL from pushState navigation so a refresh restores the page.
+  const [route, setRoute] = useState<Route>(() =>
+    parseHash(window.location.hash ? window.location.hash.slice(1) : window.location.pathname + (window.location.search || '')),
+  )
   const [theme, setThemeState] = useState<Theme>(() => stored<Theme>('theme', 'light'))
   const [role, setRoleState] = useState<Role>(() => {
     // Check for existing guest session first
