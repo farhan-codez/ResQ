@@ -10,7 +10,7 @@ import { RegulatorDashboard } from '@/screens/RegulatorDashboard'
 import { Signup } from '@/screens/Signup'
 
 function Screen() {
-  const { route, authReady } = useApp()
+  const { route, authReady, role, navigate } = useApp()
   if (!authReady) return null
   switch (route.name) {
     // Design-system showcase. Development builds only; never shipped to users.
@@ -27,7 +27,6 @@ function Screen() {
     case 'reports':
       return <RegulatorDashboard />
     case 'dispatch':
-      const { role, navigate } = useApp()
       return role === 'regulator' ? <DispatchList onClose={() => navigate({ name: 'reports' })} /> : <Login />
     default:
       return <Login />

@@ -32,6 +32,8 @@ function parseHash(path: string): Route {
       return { name: 'guest-upgrade' }
     case 'reports':
       return { name: 'reports', incident: params.get('incident') ?? undefined }
+    case 'dispatch':
+      return { name: 'dispatch', alertId: params.get('alertId') ?? undefined }
     case 'dashboard':
       return { name: 'dashboard', incident: params.get('incident') ?? undefined, focus: params.get('focus') ?? undefined }
     default:
@@ -99,11 +101,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
   )
   const [theme, setThemeState] = useState<Theme>(() => stored<Theme>('theme', 'light'))
   const [role, setRoleState] = useState<Role>(() => {
-    // Check for existing guest session first
+    // Guest sessions take priority, then the persisted role so a regulator
+    // refresh doesn't fall back to the citizen view. The Supabase profile
+    // reconciles this once the session resolves; signOut clears it.
     const guestId = localStorage.getItem('resq.guest.current')
     if (guestId) return 'guest'
-    // Reset any stale regulator role from previous sessions
-    localStorage.removeItem('resq.role')
     return stored<Role>('role', 'citizen')
   })
   const [reports, setReports] = useState<Report[]>(isSupabaseConfigured ? [] : INITIAL_REPORTS)
@@ -370,6 +372,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(`resq.guest.${guestId}`)
       localStorage.removeItem('resq.guest.current')
     }
+    // Clear the persisted role so the next account starts as a citizen
+    localStorage.removeItem('resq.role')
+    setRoleState('citizen')
     setReports(isSupabaseConfigured ? [] : INITIAL_REPORTS)
   }, [])
 

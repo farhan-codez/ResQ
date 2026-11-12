@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { ChevronUp, Siren, X } from 'lucide-react'
+import { ChevronUp, ClipboardList, Satellite, Shield, Siren, Truck, X } from 'lucide-react'
+import { Button } from '@/components/ui/Button'
 import { AppShell, BottomSheet } from '@/components/layout/AppShell'
 import { ReportsMap, type MapHandle } from '@/components/map/ReportsMap'
 import { ReportForm, type DraftLocation } from '@/components/report/ReportForm'
@@ -51,7 +52,7 @@ function PanelSkeleton() {
 }
 
 export function Dashboard() {
-  const { route, navigate, reports, role } = useApp()
+  const { route, navigate, reports, detections, dispatchAlerts, role } = useApp()
   const isRegulator = role === 'regulator'
   const isMobile = useIsMobile()
   const mapRef = useRef<MapHandle>(null)
@@ -136,6 +137,28 @@ export function Dashboard() {
     <ReportForm compact={compact} location={location} picking={picking} onChangeLocation={togglePick} onViewOnMap={isRegulator ? viewOnMap : undefined} titleRef={titleRef} />
   )
 
+  // Regulator desk: live queue counts for the map page
+  const deskRows = [
+    {
+      icon: ClipboardList,
+      label: 'Reports awaiting a team',
+      count: reports.filter((r) => r.status === 'pending' && !r.assignedTeam).length,
+      onClick: () => navigate({ name: 'reports' }),
+    },
+    {
+      icon: Satellite,
+      label: 'Satellite leads to review',
+      count: detections.filter((d) => d.status === 'pending_review').length,
+      onClick: () => navigate({ name: 'reports' }),
+    },
+    {
+      icon: Truck,
+      label: 'Active dispatches',
+      count: dispatchAlerts.filter((a) => a.status !== 'closed').length,
+      onClick: () => navigate({ name: 'dispatch' }),
+    },
+  ]
+
   return (
     <AppShell active="map" onReport={openReport}>
       <div className="relative flex h-full">
@@ -182,16 +205,34 @@ export function Dashboard() {
           {isRegulator && !incident && (
             <div
               ref={panelRef}
-              className="absolute z-index-[101] left-6 top-6 rounded-2xl border border-border bg-surface shadow-lg max-w-sm w-full transform origin-top-right scale-95"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="form-title"
+              className="absolute left-6 top-6 z-[100] w-full max-w-sm origin-top-right scale-95 transform rounded-2xl border border-border bg-surface shadow-lg"
+              role="region"
+              aria-labelledby="reg-desk-title"
             >
-              <h2 id="form-title" className="text-xl text-fg font-medium p-4 border-b border-border text-left">
-                Report an issue
+              <h2 id="reg-desk-title" className="flex items-center gap-2 border-b border-border p-4 text-left text-xl font-medium text-fg">
+                <Shield className="size-5 text-brand-soft-fg" aria-hidden />
+                Regulator desk
               </h2>
-              <div className="p-4">
-                <p className="text-fg-muted">Regulator workspace shown instead</p>
+              <div className="p-2">
+                {deskRows.map((row) => (
+                  <button
+                    key={row.label}
+                    type="button"
+                    onClick={row.onClick}
+                    className="flex min-h-11 w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-fg hover:bg-surface-2 focus-visible:bg-surface-2"
+                  >
+                    <row.icon className="size-4 shrink-0 text-fg-muted" aria-hidden />
+                    <span className="flex-1">{row.label}</span>
+                    <span className={row.count ? 'tabular font-semibold text-fg' : 'tabular font-semibold text-fg-muted'}>
+                      {row.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              <div className="border-t border-border p-3">
+                <Button block onClick={() => navigate({ name: 'reports' })}>
+                  Open reports queue
+                </Button>
               </div>
             </div>
           )}
