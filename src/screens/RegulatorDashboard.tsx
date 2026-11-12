@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronLeft, Inbox, MapPin, MoreHorizontal, Search, Shield, Users } from 'lucide-react'
+import { Inbox, MapPin, MoreHorizontal, Search, Shield, Users } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { SeverityChip } from '@/components/ui/Chips'
 import { Select } from '@/components/ui/Field'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { TEAMS } from '@/lib/data'
@@ -95,9 +94,6 @@ function ReportRow({ report, onClick, onStatusChange, onAssignTeam }: { report: 
         </div>
       </td>
       <td className="px-3 py-3">
-        <SeverityChip severity={report.severity} />
-      </td>
-      <td className="px-3 py-3">
         <StatusBadge status={report.status} onChange={(s) => onStatusChange(report.id, s)} />
       </td>
       <td className="hidden px-3 py-3 text-sm text-fg-muted lg:table-cell">{report.region}</td>
@@ -124,7 +120,6 @@ export function RegulatorDashboard() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [severityFilter, setSeverityFilter] = useState<string>('all')
   const [regionFilter, setRegionFilter] = useState<string>('all')
   const [selectedReport, setSelectedReport] = useState<any | null>(null)
   const [activeTab, setActiveTab] = useState<'reports' | 'detections'>('reports')
@@ -138,19 +133,17 @@ export function RegulatorDashboard() {
   const filteredReports = reports.filter((r) => {
     const matchesSearch = !search || `${r.title} ${r.place} ${r.region} ${r.id}`.toLowerCase().includes(search.toLowerCase())
     const matchesStatus = statusFilter === 'all' || r.status === statusFilter
-    const matchesSeverity = severityFilter === 'all' || r.severity === severityFilter
     const matchesRegion = regionFilter === 'all' || r.region === regionFilter
-    return matchesSearch && matchesStatus && matchesSeverity && matchesRegion
+    return matchesSearch && matchesStatus && matchesRegion
   })
 
   // Get unique regions for filter
   const regions = [...new Set(reports.map((r) => r.region))].sort()
 
-  const filtersActive = !!search || statusFilter !== 'all' || severityFilter !== 'all' || regionFilter !== 'all'
+  const filtersActive = !!search || statusFilter !== 'all' || regionFilter !== 'all'
   const clearFilters = () => {
     setSearch('')
     setStatusFilter('all')
-    setSeverityFilter('all')
     setRegionFilter('all')
   }
 
@@ -204,13 +197,6 @@ export function RegulatorDashboard() {
       <div className="flex h-full flex-col bg-bg">
         {/* Toolbar */}
         <header className="flex min-h-16 shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-border bg-surface px-4 py-2.5">
-          <button
-            type="button"
-            onClick={() => navigate({ name: 'dashboard' })}
-            className="flex cursor-pointer items-center gap-1.5 text-sm font-medium text-brand-soft-fg hover:underline"
-          >
-            <ChevronLeft className="size-4" aria-hidden /> Map
-          </button>
           <div className="relative min-w-52 flex-1 md:max-w-md">
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-fg-muted" aria-hidden />
             <input
@@ -228,12 +214,6 @@ export function RegulatorDashboard() {
               <option value="pending">Pending</option>
               <option value="investigating">Investigating</option>
               <option value="resolved">Resolved</option>
-            </Select>
-            <Select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} aria-label="Filter by severity" className="w-36">
-              <option value="all">All severities</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
             </Select>
             <Select value={regionFilter} onChange={(e) => setRegionFilter(e.target.value)} aria-label="Filter by region" className="w-40">
               <option value="all">All regions</option>
@@ -294,7 +274,6 @@ export function RegulatorDashboard() {
                       {[0, 1, 2, 3, 4, 5].map((i) => (
                         <div key={i} className="flex items-center gap-4 border-b border-border px-4 py-3.5">
                           <Skeleton className="h-5 flex-1" />
-                          <Skeleton className="h-5 w-16" />
                           <Skeleton className="h-8 w-40" />
                           <Skeleton className="hidden h-5 w-28 lg:block" />
                           <Skeleton className="h-5 w-52" />
@@ -323,7 +302,6 @@ export function RegulatorDashboard() {
                       <thead className="sticky top-0 z-10 border-b border-border bg-surface">
                         <tr className="text-left text-xs font-medium text-fg-muted">
                           <th scope="col" className="px-4 py-2.5 font-medium">Report</th>
-                          <th scope="col" className="w-24 px-3 py-2.5 font-medium">Severity</th>
                           <th scope="col" className="w-44 px-3 py-2.5 font-medium">Status</th>
                           <th scope="col" className="hidden w-40 px-3 py-2.5 font-medium lg:table-cell">Region</th>
                           <th scope="col" className="w-52 px-3 py-2.5 font-medium">Team</th>
@@ -346,7 +324,7 @@ export function RegulatorDashboard() {
               </div>
 
               {/* Side Panel - Live Map */}
-              <div className="hidden w-96 flex-col border-l border-border bg-surface xl:flex xl:w-[400px]">
+              <div className="hidden w-96 flex-col border-l border-border bg-surface xl:flex xl:w-[520px] 2xl:w-[620px]">
                 <div className="flex h-12 shrink-0 items-center justify-between border-b border-border px-4">
                   <h3 className="text-sm font-semibold text-fg">Live map</h3>
                 </div>
