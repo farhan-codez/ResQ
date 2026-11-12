@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, Loader2, AlertCircle, CheckCircle } from 'lucide-react'
+import { Camera, AlertCircle, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 
 // The guest flow opens the camera and completes after a short verification
 // window. No models are downloaded, so there is no long wait.
-const VERIFY_MS = 12000
+const VERIFY_MS = 4000
 
 function guestDescriptor(): number[] {
   const d = new Array<number>(128)
@@ -163,9 +163,17 @@ export function FaceScan({ onComplete, onCancel }: { onComplete: (descriptor: nu
               <ellipse cx="50" cy="50" rx="35" ry="42" fill="none" stroke="currentColor" strokeWidth="2" />
             </svg>
           </div>
-          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 items-center gap-2 text-sm text-white/90">
-            <Loader2 className="size-4 animate-spin" aria-hidden />
-            <span>{state === 'starting' ? 'Starting camera…' : `Verifying… ${progress}%`}</span>
+          <div className="absolute inset-x-0 bottom-0 bg-black/50 px-3 py-2 backdrop-blur-sm">
+            <div className="flex items-center justify-between text-xs text-white">
+              <span>{state === 'starting' ? 'Starting camera…' : 'Verifying your face'}</span>
+              {state !== 'starting' && <span className="tabular">{progress}%</span>}
+            </div>
+            <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-white/25">
+              <div
+                className="h-full rounded-full bg-white transition-[width] duration-200 ease-linear"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
           </div>
         </div>
         <p className="px-4 text-center text-xs text-fg-muted">Hold your face in the oval. Verification finishes automatically.</p>

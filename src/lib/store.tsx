@@ -93,6 +93,16 @@ function stored<T extends string>(key: string, fallback: T): T {
   }
 }
 
+/** Demo mode only: the name from the account created on this device, so sign-up names show in the header. */
+function demoAccountName(): string {
+  if (isSupabaseConfigured) return ''
+  try {
+    return JSON.parse(localStorage.getItem('resq.account') || 'null')?.name || ''
+  } catch {
+    return ''
+  }
+}
+
 export function AppProvider({ children }: { children: ReactNode }) {
   // Initial route: prefer the hash (legacy `#/…` links), otherwise parse the
   // real path URL from pushState navigation so a refresh restores the page.
@@ -134,7 +144,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const guestData = localStorage.getItem(`resq.guest.${guestId}`)
         if (guestData) {
           const { faceDescriptor, createdAt } = JSON.parse(guestData)
-          setSession({ id: guestId, email: '', name: 'Guest' })
+          setSession({ id: guestId, email: '', name: guestId })
           setRoleState('guest')
         }
       }
@@ -151,7 +161,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           const guestData = localStorage.getItem(`resq.guest.${guestId}`)
           if (guestData) {
             const { faceDescriptor, createdAt } = JSON.parse(guestData)
-            setSession({ id: guestId, email: '', name: 'Guest' })
+            setSession({ id: guestId, email: '', name: guestId })
             setRoleState('guest')
             setAuthReady(true)
             return
@@ -169,7 +179,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setAuthReady(true)
       const profile = await fetchProfile(u.id)
       if (cancelled || !profile) return
-      setSession({ id: u.id, email: profile.email || u.email || '', name: profile.name })
+      setSession({ id: u.id, email: profile.email || u.email || '', name: profile.name || fallbackName })
       setRoleState(profile.role)
     }
     supabase.auth.getSession().then(({ data }) => apply(data.session))
@@ -410,7 +420,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       authReady,
       signedIn: isSupabaseConfigured ? !!session : true,
       user: {
-        name: session?.name || (role === 'guest' ? 'Guest' : role === 'regulator' ? 'Regulator' : 'Citizen'),
+        name: session?.name || (role === 'guest' ? 'Guest' : role === 'regulator' ? 'Regulator' : demoAccountName() || 'Citizen'),
         email: session?.email ?? '',
       },
     }),

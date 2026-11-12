@@ -357,6 +357,8 @@ export function Signup() {
   const createAccount = async (photoUrl: string) => {
     if (!isSupabaseConfigured) {
       await new Promise((r) => setTimeout(r, 1100))
+      // Demo mode has no backend: remember the account so the header shows the sign-up name.
+      localStorage.setItem('resq.account', JSON.stringify({ name: details.name, email: details.email }))
       setStep(2)
       return
     }
